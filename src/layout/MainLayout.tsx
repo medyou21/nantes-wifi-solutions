@@ -1,11 +1,11 @@
-import { Container } from "@mui/material";
+import { Box } from "@mui/material";
 import Home from "../pages/Home";
 
 const MainLayout = () => {
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ width: "100%", overflowX: "hidden" }}>
       <Home />
-    </Container>
+    </Box>
   );
 };
 
