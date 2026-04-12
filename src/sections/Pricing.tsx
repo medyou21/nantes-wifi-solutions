@@ -1,48 +1,39 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, CircularProgress } from "@mui/material";
 import PricingCard from "../components/PricingCard";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 const MotionBox = motion(Box);
 
+interface Offer {
+  _id: string;
+  title: string;
+  price: number;
+  description: string;
+  features: string[];
+}
+
 export default function Pricing() {
-  const plans: {
-    title: string;
-    price: string;
-    period?: string;
-    features: string[];
-    highlight?: boolean;
-    dark?: boolean;
-  }[] = [
-    {
-      title: "Basic",
-      price: "79€",
-      features: [
-        "Diagnostic Wi-Fi",
-        "Optimisation réseau",
-        "Vérification sécurité",
-      ],
-    },
-    {
-      title: "Confort",
-      price: "199€",
-      features: [
-        "Diagnostic Wi-Fi",
-        "Installation avancée",
-        "Matériel inclus",
-      ],
-      highlight: true,
-    },
-    {
-      title: "Pro Entreprise",
-      price: "499€",
-      period: "/mois",
-      features: [
-        "Tous les forfaits Basic inclus",
-        "Réseau professionnel",
-        "Surveillance en continu",
-      ],
-      dark: true,
-    },
+  const [plans, setPlans] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/api/offers`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Erreur lors du chargement des offres");
+        return res.json();
+      })
+      .then((data) => setPlans(data))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Mise en forme des cards selon l'index
+  const cardStyles = [
+    { highlight: false, dark: false },
+    { highlight: true,  dark: false },
+    { highlight: false, dark: true  },
   ];
 
   return (
@@ -78,7 +69,6 @@ export default function Pricing() {
         transition={{ duration: 0.6 }}
         sx={{ textAlign: "center", mb: 10, position: "relative", zIndex: 1 }}
       >
-        {/* BADGE */}
         <Box
           sx={{
             display: "inline-block",
@@ -104,7 +94,6 @@ export default function Pricing() {
           </Typography>
         </Box>
 
-        {/* TITRE */}
         <Box>
           <Box
             sx={{
@@ -130,39 +119,53 @@ export default function Pricing() {
         </Box>
       </MotionBox>
 
+      {/* STATES */}
+      {loading && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+          <CircularProgress sx={{ color: "#fff" }} />
+        </Box>
+      )}
+
+      {error && (
+        <Typography sx={{ color: "red", textAlign: "center", py: 4 }}>
+          {error}
+        </Typography>
+      )}
+
       {/* CARDS */}
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: 4,
-          maxWidth: 1000,
-          mx: "auto",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        {plans.map((plan, index) => (
-          <Box
-            key={plan.title}
-            sx={{
-              flex: "1 1 260px",
-              maxWidth: 300,
-            }}
-          >
-            <MotionBox
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.15 }}
-            >
-              <PricingCard {...plan} />
-            </MotionBox>
-          </Box>
-        ))}
-      </Box>
+      {!loading && !error && (
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 4,
+            maxWidth: 1000,
+            mx: "auto",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          {plans.map((plan, index) => (
+            <Box key={plan._id} sx={{ flex: "1 1 260px", maxWidth: 300 }}>
+              <MotionBox
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.15 }}
+              >
+                <PricingCard
+                  title={plan.title}
+                  price={`${plan.price}€`}
+                  features={plan.features}
+                  {...(cardStyles[index] ?? {})}
+                />
+              </MotionBox>
+            </Box>
+          ))}
+        </Box>
+      )}
     </Box>
   );
 }

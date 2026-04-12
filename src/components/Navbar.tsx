@@ -18,8 +18,8 @@ import { useState } from "react";
 import logo from "../assets/logo1.png";
 
 const navLinks = [
-  { label: "Services", path: "/" },
-  { label: "Tarifs", path: "/" },
+  { label: "Services", path: "/services" },
+  { label: "Tarifs", path: "/tarifs" },
   { label: "Contact", path: "/contact" },
 ];
 
