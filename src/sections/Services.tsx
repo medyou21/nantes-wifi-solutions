@@ -5,7 +5,7 @@ import SecurityIcon from "@mui/icons-material/Security";
 import { motion } from "framer-motion";
 import ServiceCard from "../components/ServiceCard";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 export default function Services() {
   const services = [

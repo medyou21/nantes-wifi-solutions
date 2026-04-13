@@ -2,7 +2,7 @@ import { Box, Typography, Tabs, Tab } from "@mui/material";
 import { motion } from "framer-motion";
 import { useState } from "react";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 // ─────────────────────────────────────────────
 // DONNÉES

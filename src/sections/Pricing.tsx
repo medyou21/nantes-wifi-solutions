@@ -3,8 +3,7 @@ import PricingCard from "../components/PricingCard";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
-const MotionBox = motion(Box);
-
+const MotionBox = motion.create(Box);
 interface Offer {
   _id: string;
   title: string;
