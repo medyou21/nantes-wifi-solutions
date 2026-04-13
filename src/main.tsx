@@ -5,14 +5,24 @@ import { ThemeProvider } from "@mui/material/styles";
 import { theme } from "./styles/theme";
 import CssBaseline from "@mui/material/CssBaseline";
 import { BrowserRouter } from "react-router-dom";
+import createCache from "@emotion/cache";
+import { CacheProvider } from "@emotion/react";
+
+// ✅ Supprime le warning :first-child de MUI/Emotion
+const cache = createCache({
+  key: "css",
+  prepend: true,
+});
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <App />
-      </ThemeProvider>
-    </BrowserRouter>
+    <CacheProvider value={cache}>
+      <BrowserRouter>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <App />
+        </ThemeProvider>
+      </BrowserRouter>
+    </CacheProvider>
   </React.StrictMode>
-);  
+);

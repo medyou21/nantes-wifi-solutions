@@ -16,9 +16,11 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
-const MotionBox = motion(Box);
-const MotionButton = motion(Button as any);
+const MotionBox = motion.create(Box);
 
+// ─────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────
 const services = [
   "Diagnostic Wi-Fi",
   "Installation Wi-Fi",
@@ -43,11 +45,26 @@ const inputSx = {
   "& .MuiSelect-icon": { color: "rgba(255,255,255,0.4)" },
 };
 
+// ✅ MenuProps extrait — réutilisable et propre
+const menuProps = {
+  PaperProps: {
+    sx: {
+      background: "#0D1B2A",
+      border: "1px solid rgba(255,255,255,0.1)",
+      "& .MuiMenuItem-root": {
+        color: "rgba(255,255,255,0.75)",
+        "&:hover": { background: "rgba(41,121,255,0.15)" },
+        "&.Mui-selected": { background: "rgba(41,121,255,0.2)" },
+      },
+    },
+  },
+};
+
 const infoItems = [
-  { icon: <PhoneIcon sx={{ fontSize: 20 }} />, label: "Téléphone", value: "+33 X XX XX XX XX", href: "tel:+33XXXXXXXXX" },
-  { icon: <EmailIcon sx={{ fontSize: 20 }} />, label: "Email", value: "contact@nantes-wifi.fr", href: "mailto:contact@nantes-wifi.fr" },
+  { icon: <PhoneIcon sx={{ fontSize: 20 }} />, label: "Téléphone",          value: "+33 X XX XX XX XX",       href: "tel:+33XXXXXXXXX" },
+  { icon: <EmailIcon sx={{ fontSize: 20 }} />, label: "Email",              value: "contact@nantes-wifi.fr",  href: "mailto:contact@nantes-wifi.fr" },
   { icon: <LocationOnIcon sx={{ fontSize: 20 }} />, label: "Zone d'intervention", value: "Nantes & agglomération", href: undefined },
-  { icon: <AccessTimeIcon sx={{ fontSize: 20 }} />, label: "Disponibilité", value: "Lun–Sam · 8h–19h", href: undefined },
+  { icon: <AccessTimeIcon sx={{ fontSize: 20 }} />, label: "Disponibilité",  value: "Lun–Sam · 8h–19h",       href: undefined },
 ];
 
 interface FormData {
@@ -58,13 +75,16 @@ interface FormData {
   message: string;
 }
 
+// ─────────────────────────────────────────────
+// COMPONENT
+// ─────────────────────────────────────────────
 export default function Contact() {
   const [form, setForm] = useState<FormData>({
     name: "", email: "", phone: "", service: "", message: "",
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]     = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -94,16 +114,15 @@ export default function Contact() {
   };
 
   return (
-    <Box
-      sx={{
-        background: "linear-gradient(180deg, #000000 0%, #0A1628 100%)",
-        minHeight: "100vh",
-        px: { xs: 2, md: 8 },
-        py: { xs: 8, md: 12 },
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
+    <Box sx={{
+      background: "linear-gradient(180deg, #000000 0%, #0A1628 100%)",
+      minHeight: "100vh",
+      px: { xs: 2, md: 8 },
+      py: { xs: 8, md: 12 },
+      position: "relative",
+      overflow: "hidden",
+    }}>
+
       {/* Glow */}
       <Box sx={{
         position: "absolute", width: 600, height: 500,
@@ -113,7 +132,7 @@ export default function Contact() {
 
       <Box sx={{ position: "relative", zIndex: 1, maxWidth: 1100, mx: "auto" }}>
 
-        {/* ── HEADER ── */}
+        {/* ── HEADER ────────────────────────── */}
         <MotionBox
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -131,6 +150,7 @@ export default function Contact() {
               CONTACT
             </Typography>
           </Box>
+
           <Box>
             <Box sx={{
               display: "inline-block", px: { xs: 3, md: 6 }, py: 2,
@@ -138,18 +158,23 @@ export default function Contact() {
               boxShadow: "0 8px 30px rgba(0,0,0,0.3)", mb: 2,
             }}>
               <Typography variant="h4" sx={{
-                fontWeight: 900, color: "#000", fontSize: { xs: "1.4rem", md: "2rem" },
+                fontWeight: 900, color: "#000",
+                fontSize: { xs: "1.4rem", md: "2rem" },
               }}>
                 Parlons de votre projet Wi-Fi
               </Typography>
             </Box>
           </Box>
-          <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: "1rem", maxWidth: 480, mx: "auto" }}>
+
+          <Typography sx={{
+            color: "rgba(255,255,255,0.4)", fontSize: "1rem",
+            maxWidth: 480, mx: "auto",
+          }}>
             Réponse garantie sous 2h. Devis gratuit, sans engagement.
           </Typography>
         </MotionBox>
 
-        {/* ── LAYOUT 2 colonnes ── */}
+        {/* ── LAYOUT 2 colonnes ─────────────── */}
         <Box sx={{
           display: "flex",
           flexDirection: { xs: "column", md: "row" },
@@ -157,14 +182,13 @@ export default function Contact() {
           alignItems: "flex-start",
         }}>
 
-          {/* ── COL GAUCHE : Infos ── */}
+          {/* ── COL GAUCHE : Infos ────────────── */}
           <MotionBox
             initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
             sx={{ flex: "0 0 auto", width: { xs: "100%", md: 300 } }}
           >
-            {/* Info cards */}
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 4 }}>
               {infoItems.map((item) => (
                 <Box
@@ -195,7 +219,10 @@ export default function Contact() {
                     {item.icon}
                   </Box>
                   <Box>
-                    <Typography sx={{ color: "rgba(255,255,255,0.35)", fontSize: "0.7rem", fontWeight: 600, mb: 0.2 }}>
+                    <Typography sx={{
+                      color: "rgba(255,255,255,0.35)", fontSize: "0.7rem",
+                      fontWeight: 600, mb: 0.2,
+                    }}>
                       {item.label}
                     </Typography>
                     <Typography sx={{ color: "#fff", fontSize: "0.85rem", fontWeight: 600 }}>
@@ -212,7 +239,10 @@ export default function Contact() {
               border: "1px solid rgba(41,121,255,0.2)",
               borderRadius: "12px", p: 3,
             }}>
-              <Typography sx={{ color: "#2979FF", fontWeight: 700, fontSize: "0.8rem", mb: 1.5, letterSpacing: 1 }}>
+              <Typography sx={{
+                color: "#2979FF", fontWeight: 700,
+                fontSize: "0.8rem", mb: 1.5, letterSpacing: 1,
+              }}>
                 NOTRE ENGAGEMENT
               </Typography>
               {[
@@ -231,7 +261,7 @@ export default function Contact() {
             </Box>
           </MotionBox>
 
-          {/* ── COL DROITE : Formulaire ── */}
+          {/* ── COL DROITE : Formulaire ───────── */}
           <MotionBox
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
@@ -265,7 +295,8 @@ export default function Contact() {
                   <Button
                     onClick={() => setSuccess(false)}
                     sx={{
-                      color: "#2979FF", border: "1px solid rgba(41,121,255,0.3)",
+                      color: "#2979FF",
+                      border: "1px solid rgba(41,121,255,0.3)",
                       borderRadius: "10px", textTransform: "none", fontWeight: 700,
                       "&:hover": { background: "rgba(41,121,255,0.1)" },
                     }}
@@ -274,12 +305,20 @@ export default function Contact() {
                   </Button>
                 </MotionBox>
               ) : (
-                <MotionBox key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.8rem", mb: 3, fontWeight: 600, letterSpacing: 1 }}>
+                <MotionBox
+                  key="form"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Typography sx={{
+                    color: "rgba(255,255,255,0.5)", fontSize: "0.8rem",
+                    mb: 3, fontWeight: 600, letterSpacing: 1,
+                  }}>
                     VOTRE DEMANDE
                   </Typography>
 
-                  {/* Ligne Nom + Email */}
+                  {/* Nom + Email */}
                   <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
                     <TextField
                       fullWidth name="name" label="Nom complet *"
@@ -293,30 +332,26 @@ export default function Contact() {
                     />
                   </Box>
 
-                  {/* Ligne Téléphone + Service */}
+                  {/* Téléphone + Service */}
                   <Box sx={{ display: "flex", gap: 2, mt: 2, flexDirection: { xs: "column", sm: "row" } }}>
                     <TextField
                       fullWidth name="phone" label="Téléphone"
                       value={form.phone} onChange={handleChange}
                       margin="none" sx={inputSx}
                     />
+                    {/* ✅ SelectProps → slotProps */}
                     <TextField
-                      fullWidth select name="service" label="Type de service"
-                      value={form.service} onChange={handleChange}
-                      margin="none" sx={inputSx}
-                      SelectProps={{
-                        MenuProps: {
-                          PaperProps: {
-                            sx: {
-                              background: "#0D1B2A",
-                              border: "1px solid rgba(255,255,255,0.1)",
-                              "& .MuiMenuItem-root": {
-                                color: "rgba(255,255,255,0.75)",
-                                "&:hover": { background: "rgba(41,121,255,0.15)" },
-                                "&.Mui-selected": { background: "rgba(41,121,255,0.2)" },
-                              },
-                            },
-                          },
+                      fullWidth
+                      select
+                      name="service"
+                      label="Type de service"
+                      value={form.service}
+                      onChange={handleChange}
+                      margin="none"
+                      sx={inputSx}
+                      slotProps={{
+                        select: {
+                          MenuProps: menuProps,
                         },
                       }}
                     >
@@ -335,10 +370,11 @@ export default function Contact() {
                     sx={{ ...inputSx, mt: 2 }}
                   />
 
-                  {/* Error */}
+                  {/* Erreur */}
                   {error && (
                     <Alert severity="error" sx={{
-                      mt: 2, background: "rgba(255,80,80,0.1)",
+                      mt: 2,
+                      background: "rgba(255,80,80,0.1)",
                       border: "1px solid rgba(255,80,80,0.3)",
                       color: "#ff6b6b",
                       "& .MuiAlert-icon": { color: "#ff6b6b" },
@@ -347,30 +383,40 @@ export default function Contact() {
                     </Alert>
                   )}
 
-                  {/* Submit */}
-                  <MotionButton
-                    onClick={handleSubmit}
-                    disabled={loading}
+                  {/* ✅ Submit — motion.div wrapper au lieu de MotionButton */}
+                  <motion.div
                     whileHover={!loading ? { scale: 1.02 } : {}}
                     whileTap={!loading ? { scale: 0.98 } : {}}
-                    fullWidth
-                    endIcon={loading ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : <SendIcon />}
-                    sx={{
-                      mt: 3, py: 1.6,
-                      background: loading
-                        ? "rgba(41,121,255,0.4)"
-                        : "linear-gradient(135deg, #2979FF, #1565C0)",
-                      color: "#fff", fontWeight: 700, fontSize: "1rem",
-                      borderRadius: "12px", textTransform: "none",
-                      boxShadow: "0 8px 24px rgba(41,121,255,0.4)",
-                      "&:hover": { boxShadow: "0 12px 32px rgba(41,121,255,0.6)" },
-                      "&.Mui-disabled": { color: "rgba(255,255,255,0.5)" },
-                    }}
                   >
-                    {loading ? "Envoi en cours..." : "Envoyer ma demande"}
-                  </MotionButton>
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={loading}
+                      fullWidth
+                      endIcon={
+                        loading
+                          ? <CircularProgress size={18} sx={{ color: "#fff" }} />
+                          : <SendIcon />
+                      }
+                      sx={{
+                        mt: 3, py: 1.6,
+                        background: loading
+                          ? "rgba(41,121,255,0.4)"
+                          : "linear-gradient(135deg, #2979FF, #1565C0)",
+                        color: "#fff", fontWeight: 700, fontSize: "1rem",
+                        borderRadius: "12px", textTransform: "none",
+                        boxShadow: "0 8px 24px rgba(41,121,255,0.4)",
+                        "&:hover": { boxShadow: "0 12px 32px rgba(41,121,255,0.6)" },
+                        "&.Mui-disabled": { color: "rgba(255,255,255,0.5)" },
+                      }}
+                    >
+                      {loading ? "Envoi en cours..." : "Envoyer ma demande"}
+                    </Button>
+                  </motion.div>
 
-                  <Typography sx={{ color: "rgba(255,255,255,0.25)", fontSize: "0.75rem", textAlign: "center", mt: 2 }}>
+                  <Typography sx={{
+                    color: "rgba(255,255,255,0.25)", fontSize: "0.75rem",
+                    textAlign: "center", mt: 2,
+                  }}>
                     * Champs obligatoires · Vos données restent confidentielles
                   </Typography>
                 </MotionBox>

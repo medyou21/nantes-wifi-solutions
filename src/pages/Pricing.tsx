@@ -13,8 +13,8 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const MotionBox = motion(Box);
-const MotionButton = motion(Button as any);
+const MotionBox = motion.create(Box);
+const MotionButton = motion.create(Button as any);
 
 interface Offer {
   _id: string;

@@ -1,12 +1,10 @@
 import { Box } from "@mui/material";
 import Home from "../pages/Home";
 
-const MainLayout = () => {
+export default function MainLayout() {
   return (
     <Box sx={{ width: "100%", overflowX: "hidden" }}>
       <Home />
     </Box>
   );
-};
-
-export default MainLayout;
+}
