@@ -15,6 +15,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { trackEvent } from "../seo/GoogleAnalytics";
 
 const MotionBox = motion.create(Box);
 
@@ -105,6 +106,8 @@ export default function Contact() {
       });
       if (!res.ok) throw new Error("Erreur lors de l'envoi. Réessayez.");
       setSuccess(true);
+      trackEvent("form_submit", "Contact", "Formulaire contact", 1);     // ✅ GA4
+trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // ✅ GA4
       setForm({ name: "", email: "", phone: "", service: "", message: "" });
     } catch (err: any) {
       setError(err.message);
