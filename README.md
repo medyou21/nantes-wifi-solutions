@@ -1,376 +1,382 @@
-# 🌐 Nantes WiFi Solutions – Site Web Générateur de Leads
+# 🌐 Nantes WiFi Solutions — Site web générateur de leads
 
-> Site web professionnel full-stack pour une activité de services Wi-Fi à Nantes.  
-> Stack : React + TypeScript · Node.js · MongoDB · MUI · Framer Motion
+Site web professionnel full-stack pour une activité de diagnostic, d’installation et de sécurisation Wi-Fi à Nantes.
 
----
+**Frontend :** React · TypeScript · Vite · Material UI · Framer Motion  
+**Backend :** Node.js · Express · TypeScript · MongoDB Atlas
 
-## 🎯 Objectif du projet
+## 🎯 Objectifs
 
-- Présenter les services Wi-Fi (diagnostic, installation, sécurité)
-- Générer des leads qualifiés (formulaires / appels)
-- Convertir les visiteurs en clients
-- Gérer les demandes via un dashboard admin sécurisé
+- présenter les services Wi-Fi aux particuliers et aux professionnels ;
+- générer des leads qualifiés par formulaire, téléphone et futurs canaux marketing ;
+- mesurer les conversions avec les outils Google ;
+- gérer les demandes depuis un tableau de bord administrateur sécurisé.
 
----
-
-## 👤 Cible
+## 👥 Public ciblé
 
 | Segment | Besoins |
 |---|---|
-| Particuliers | Problèmes Wi-Fi à domicile, zones mortes |
-| PME / Bureaux | Réseau professionnel stable et sécurisé |
-| Syndics / Airbnb / Hôtels | Couverture multi-zones, réseau invité |
-
----
+| Particuliers | Zones mortes, débit instable, configuration de box ou répéteurs |
+| PME et bureaux | Réseau professionnel stable, performant et sécurisé |
+| Syndics, Airbnb et hôtels | Couverture multi-zone, réseau invité et maintenance |
 
 ## 🧱 Stack technique
 
 ### Frontend
 
-| Outil | Usage |
+| Technologie | Usage |
 |---|---|
-| React 18 + TypeScript | Framework principal |
-| Vite | Build tool |
-| Material UI (MUI v6) | Composants UI |
-| React Router v6 | Routing |
+| React + TypeScript | Interface utilisateur typée |
+| Vite | Serveur de développement et build |
+| Material UI | Composants et thème graphique |
+| React Router | Navigation et routes privées |
 | Framer Motion | Animations |
-| Axios | Appels API |
-| react-helmet-async | SEO / meta tags |
+| Axios / Fetch | Communication avec l’API |
+| react-helmet-async | Métadonnées SEO dynamiques |
 
 ### Backend
 
-| Outil | Usage |
+Le backend est maintenu dans un dépôt séparé :  
+[nantes-wifi-solutions-backend](https://github.com/medyou21/nantes-wifi-solutions-backend)
+
+| Technologie | Usage |
 |---|---|
-| Node.js + Express.js | Serveur REST |
+| Node.js + Express | API REST |
 | TypeScript | Typage strict |
-| Architecture MVC | Controller / Service / Model |
-| Zod | Validation des données |
-| Helmet | Sécurité headers HTTP |
-| express-rate-limit | Anti-spam |
-| Nodemailer | Envoi d'emails |
-| JWT | Authentification admin |
-| bcrypt | Hash des mots de passe |
+| MongoDB Atlas + Mongoose | Persistance des données |
+| Zod | Validation des entrées |
+| JWT + bcrypt | Authentification administrateur |
+| Helmet + CORS | Sécurisation HTTP |
+| express-rate-limit | Protection anti-spam et brute force |
+| Brevo / Nodemailer | Emails transactionnels |
+| PDFKit | Génération de devis PDF |
 
-### Base de données
+## 🖥️ Pages
 
-| Outil | Usage |
-|---|---|
-| MongoDB Atlas | Base de données NoSQL |
-| Mongoose | ODM |
-| express-mongo-sanitize | Protection injection NoSQL |
+### Accueil
 
----
+- Hero avec appel à l’action « Obtenir un devis gratuit »
+- Présentation des principaux services
+- Aperçu des forfaits Basic, Confort et Pro
+- CTA téléphone et formulaire
 
-## 🖥️ Pages du site
+### Services
 
-### 1. Home — Landing Page
+- Diagnostic Wi-Fi
+- Installation et optimisation
+- Sécurité et surveillance
+- Réseaux professionnels
+- CTA vers la demande de devis
 
-- Hero avec CTA "Obtenir un devis gratuit"
-- Présentation des 3 services
-- Section tarifs (Basic 79€ · Confort 199€ · Pro 499€)
-- Call To Action téléphone + formulaire
-- Footer complet
+### Tarifs
 
-### 2. Services
+| Offre | Prix indicatif | Cible |
+|---|---:|---|
+| Basic | 79 € | Diagnostic initial |
+| Confort | 199 € | Installation à domicile |
+| Pro | 499 € | Entreprises et sites multi-zones |
 
-- Détail de chaque service avec illustration SVG
-- Bénéfices listés + cibles (particuliers, PME, hôtels)
-- CTA vers contact
+Les offres peuvent être chargées depuis l’API avec `GET /api/offers`.
 
-### 3. Tarifs
+### Contact
 
-- Tableau comparatif des 3 offres
-- Données chargées depuis le backend (`GET /api/offers`)
-- Bouton "Choisir ce forfait"
+- nom, email, téléphone, service et message ;
+- validation côté client et serveur ;
+- enregistrement en base ;
+- envoi d’emails de notification et de confirmation ;
+- suivi de la conversion après un envoi réussi.
 
-### 4. Contact
+### Administration
 
-- Formulaire : nom, email, téléphone, service, message
-- Validation côté client + backend (Zod)
-- Envoi email via Nodemailer
-- Feedback visuel succès / erreur
-
-### 5. Admin Dashboard (privé)
-
-- Login sécurisé JWT
-- Liste des contacts avec filtres et recherche
-- Export CSV
-- Modal détail par contact
-- Stats par service
-
----
+- connexion JWT ;
+- liste, recherche et filtrage des contacts ;
+- affichage du détail d’une demande ;
+- statistiques par service ;
+- export CSV ;
+- routes exclues de l’indexation des moteurs de recherche.
 
 ## ⚙️ API REST
 
-### 📩 Contact
+L’URL exacte dépend de la configuration du backend.
 
-```http
-POST /api/contact
-```
-- Enregistre la demande en base
-- Envoie un email admin + confirmation client
-- Rate limit : 5 requêtes / heure / IP
+| Méthode | Route | Description | Accès |
+|---|---|---|---|
+| `POST` | `/api/contacts` | Enregistrer une demande et envoyer les notifications | Public, limité |
+| `GET` | `/api/offers` | Retourner les offres triées | Public |
+| `POST` | `/api/admin/login` | Authentifier un administrateur | Public, limité |
+| `GET` | `/api/admin/contacts` | Lister les contacts | JWT requis |
 
-### 📦 Offres
+## 🗄️ Modèles MongoDB
 
-```http
-GET /api/offers
-```
-- Retourne les 3 offres triées par ordre
-
-### 👤 Admin
-
-```http
-POST /api/auth/login      — Authentification JWT
-GET  /api/admin/contacts  — Liste des contacts (auth requise)
-```
-
----
-
-## 🗄️ Modélisation MongoDB
-
-### Collection `contacts`
+### Contact
 
 ```json
 {
-  "_id":       "ObjectId",
-  "name":      "string",
-  "email":     "string",
-  "phone":     "string",
-  "service":   "diagnostic | installation | securite | reseau | maintenance",
-  "message":   "string",
+  "_id": "ObjectId",
+  "name": "string",
+  "email": "string",
+  "phone": "string",
+  "service": "diagnostic | installation | securite | reseau | maintenance",
+  "message": "string",
   "createdAt": "Date",
   "updatedAt": "Date"
 }
 ```
 
-### Collection `offers`
+### Offre
 
 ```json
 {
-  "title":       "string",
-  "price":       "number",
+  "title": "string",
+  "price": "number",
   "description": "string",
-  "features":    ["string"],
-  "highlight":   "boolean",
-  "order":       "number"
+  "features": ["string"],
+  "highlight": "boolean",
+  "order": "number"
 }
 ```
 
-### Collection `admins`
+### Administrateur
 
 ```json
 {
-  "email":    "string",
-  "password": "string (bcrypt)",
-  "role":     "superadmin"
+  "email": "string",
+  "password": "hash bcrypt",
+  "role": "superadmin"
 }
 ```
 
----
+## 🏗️ Architecture du frontend
 
-## 🏗️ Architecture
-frontend/
-├── src/
-│   ├── pages/
-│   │   ├── Home.tsx
-│   │   ├── Services.tsx
-│   │   ├── Tarifs.tsx
-│   │   └── Contact.tsx
-│   ├── components/
-│   │   ├── Navbar.tsx
-│   │   └── Footer.tsx
-│   ├── admin/
-│   │   ├── Dashboard.tsx
+```text
+src/
+├── components/
+│   ├── CookieConsent.tsx
+│   ├── CTA.tsx
+│   ├── Footer.tsx
+│   ├── Navbar.tsx
+│   ├── PricingCard.tsx
+│   └── ServiceCard.tsx
+├── hooks/
+│   └── useContacts.ts
+├── pages/
+│   ├── Admin/
+│   │   ├── ContactDetailModal.tsx
 │   │   ├── ContactsTable.tsx
-│   │   └── ContactDetailModal.tsx
-│   ├── hooks/
-│   │   └── useContacts.ts
-│   ├── seo/
-│   │   ├── seo.config.ts
-│   │   ├── SEOHead.tsx
-│   │   ├── SchemaOrg.tsx
-│   │   └── GoogleAnalytics.tsx
-│   ├── services/
-│   │   └── api.ts
-│   └── styles/
-│       └── theme.ts
-backend/
-├── src/
-│   ├── controllers/
-│   │   ├── contact.controller.ts
-│   │   └── auth.controller.ts
-│   ├── routes/
-│   │   ├── contact.routes.ts
-│   │   ├── admin.routes.ts
-│   │   ├── auth.routes.ts
-│   │   └── offer.routes.ts
-│   ├── models/
-│   │   ├── contact.model.ts
-│   │   ├── offer.model.ts
-│   │   └── admin.model.ts
-│   ├── middlewares/
-│   │   ├── auth.middleware.ts
-│   │   ├── validate.middleware.ts
-│   │   └── sanitize.middleware.ts
-│   ├── validators/
-│   │   ├── contact.validator.ts
-│   │   └── auth.validator.ts
-│   ├── services/
-│   │   └── mail.service.ts
-│   ├── config/
-│   │   ├── db.ts
-│   │   ├── cors.config.ts
-│   │   └── rateLimit.config.ts
-│   ├── scripts/
-│   │   └── seed.ts
-│   └── app.ts
+│   │   ├── Dashboard.tsx
+│   │   └── Login.tsx
+│   ├── Contact.tsx
+│   ├── Home.tsx
+│   ├── Legal.tsx
+│   ├── Pricing.tsx
+│   └── services.tsx
+├── routes/
+│   └── PrivateRoute.tsx
+├── sections/
+│   ├── Hero.tsx
+│   ├── Pricing.tsx
+│   └── Services.tsx
+├── seo/
+│   ├── GoogleAnalytics.tsx
+│   ├── SchemaOrg.tsx
+│   ├── SEOHead.tsx
+│   └── seo.config.ts
+├── services/
+│   └── api.ts
+├── styles/
+│   └── theme.ts
+├── App.tsx
+└── main.tsx
 
----
+public/
+├── robots.txt
+├── sitemap.xml
+├── favicon.svg
+└── logo.png
+```
 
 ## 🔐 Sécurité
 
-| Mesure | Outil | Détail |
-|---|---|---|
-| Validation | Zod | Schémas stricts sur tous les inputs |
-| Sanitization XSS | Middleware custom | Strip HTML / scripts sur req.body |
-| Injection NoSQL | express-mongo-sanitize | Retire les opérateurs `$` MongoDB |
-| Headers HTTP | Helmet | CSP, X-Frame-Options, HSTS… |
-| CORS | cors | Whitelist d'origines autorisées |
-| Rate limiting global | express-rate-limit | 100 req / 15 min / IP |
-| Rate limiting contact | express-rate-limit | 5 envois / heure / IP |
-| Rate limiting auth | express-rate-limit | 10 tentatives / 15 min / IP |
-| Auth admin | JWT + bcrypt | Token 24h, hash password |
-| Body size | Express | Limite 10kb par requête |
+| Mesure | Implémentation |
+|---|---|
+| Validation | Schémas Zod côté backend |
+| Protection XSS | Nettoyage des entrées |
+| Injection NoSQL | express-mongo-sanitize |
+| En-têtes HTTP | Helmet |
+| CORS | Origines autorisées explicitement |
+| Limite globale | 100 requêtes / 15 minutes / IP |
+| Limite contact | 5 envois / heure / IP |
+| Limite connexion | 10 tentatives / 15 minutes / IP |
+| Authentification | JWT avec expiration et mots de passe bcrypt |
+| Taille du body | Limite de 10 Ko |
+| Pages privées | `noindex, nofollow, noarchive` |
 
----
+Aucun secret, mot de passe ou identifiant administrateur ne doit être enregistré dans Git.
 
-## 🚀 SEO & Marketing
+## 🚀 SEO et marketing Google
 
 | Élément | Implémentation |
 |---|---|
-| Meta tags | `react-helmet-async` par page |
-| Open Graph | Titre, description, image par page |
-| Twitter Card | `summary_large_image` |
-| Schema.org | `LocalBusiness` JSON-LD avec horaires, zone, offres |
-| Google Analytics 4 | GA4 avec `anonymize_ip` (RGPD) |
-| Canonical URLs | Une URL canonique par page |
-| Robots | Pages admin exclues (`noindex`) |
+| Meta tags | Titre et description par page |
+| URL canonique | Canonical dynamique selon l’environnement |
+| Open Graph | Titre, description, URL et image |
+| X / Twitter Card | `summary_large_image` |
+| Schema.org | `LocalBusiness` et catalogue d’offres en JSON-LD |
+| Google Analytics 4 | Pages vues et événements marketing |
+| Google Tag Manager | Conteneur chargé par variable d’environnement |
+| Google Ads | Conversion `generate_lead` après succès du formulaire |
+| Search Console | Balise de validation dans le HTML statique |
+| Consent Mode v2 | Consentement refusé par défaut puis mis à jour |
+| Bandeau RGPD | Choix accepter/refuser conservé localement |
+| Suivi des clics | Téléphone, email et WhatsApp |
+| Sitemap | `/sitemap.xml` |
+| Robots | `/robots.txt` et exclusion de `/admin/` |
+
+### Événements suivis
+
+| Événement | Déclenchement |
+|---|---|
+| `page_view` | Navigation entre les pages React |
+| `form_submit` | Formulaire de contact envoyé |
+| `generate_lead` | Demande enregistrée avec succès |
+| `conversion` | Conversion transmise à Google Ads |
+| `click_phone` | Clic sur un lien `tel:` |
+| `click_email` | Clic sur un lien `mailto:` |
+| `click_whatsapp` | Clic sur un lien WhatsApp |
+| `consent_granted` | Acceptation des outils de mesure |
 
 ### Mots-clés ciblés
 
 - WiFi Nantes
 - Installation WiFi Nantes
-- Problème WiFi maison
 - Diagnostic WiFi Nantes
+- Problème WiFi maison
 - Expert WiFi Nantes
 - Dépannage WiFi Nantes
 - Réseau WiFi professionnel Nantes
 
----
+## ⚙️ Installation du frontend
+
+```bash
+git clone https://github.com/medyou21/nantes-wifi-solutions.git
+cd nantes-wifi-solutions
+npm install
+npm run dev
+```
+
+Pour récupérer la branche SEO avant sa fusion :
+
+```bash
+git fetch origin
+git switch --track origin/feature/google-seo-marketing
+npm install
+npm run dev
+```
+
+## 🔐 Variables d’environnement du frontend
+
+Copier `.env.example` vers `.env`, puis renseigner les valeurs nécessaires :
+
+```env
+VITE_API_URL=http://localhost:5000
+VITE_SITE_URL=https://nantes-wifi.fr
+
+VITE_GA_ID=G-XXXXXXXXXX
+VITE_GTM_ID=GTM-XXXXXXX
+
+VITE_GOOGLE_ADS_ID=AW-XXXXXXXXX
+VITE_GOOGLE_ADS_CONVERSION_LABEL=XXXXXXXXXXXX
+
+VITE_GOOGLE_SITE_VERIFICATION=XXXXXXXXXXXX
+```
+
+Les identifiants Google ne sont pas des secrets. Les clés API privées et les mots de passe ne doivent jamais être placés dans le frontend.
+
+Lorsque `VITE_GTM_ID` est renseigné, le conteneur Google Tag Manager prend en charge le chargement des balises. Il faut alors créer et publier une balise Google dans GTM avec l’identifiant `VITE_GA_ID`.
+
+## 🔐 Variables d’environnement du backend
+
+```env
+PORT=5000
+NODE_ENV=development
+MONGO_URI=mongodb+srv://...
+CLIENT_URL=http://localhost:5173
+BREVO_API_KEY=...
+MAIL_FROM=contact@nantes-wifi.fr
+MAIL_TO=admin@nantes-wifi.fr
+JWT_SECRET=...
+```
+
+Utiliser des valeurs différentes et sécurisées pour la production.
+
+## 📦 Scripts
+
+Les scripts exacts dépendent du `package.json` présent localement :
+
+| Commande | Description |
+|---|---|
+| `npm run dev` | Démarrer le frontend en développement |
+| `npm run build` | Compiler le frontend pour la production |
+| `npm run preview` | Prévisualiser le build |
 
 ## 📦 Déploiement
 
-| Couche | Service recommandé |
+| Couche | Service |
 |---|---|
-| Frontend | Vercel / Netlify |
-| Backend | Render / Railway / VPS |
+| Frontend | Vercel ou Netlify |
+| Backend | Render, Railway ou VPS |
 | Base de données | MongoDB Atlas |
-| Emails | Gmail SMTP / Resend / Mailgun |
+| Emails | Brevo |
+| Domaine | `nantes-wifi.fr` |
 
-### Variables d'environnement
+Ajouter les variables `VITE_*` dans les paramètres du projet Vercel, puis redéployer le frontend.
 
-**Frontend `.env`**
-```env
-VITE_API_URL=https://api.nantes-wifi.fr
+## 🔄 Parcours de conversion
+
+```text
+Visiteur
+  → Accueil / Services / Tarifs
+  → Formulaire, téléphone ou WhatsApp
+  → Validation et enregistrement par l’API
+  → Notification client et administrateur
+  → Événement generate_lead
+  → Conversion commerciale
 ```
 
-**Backend `.env`**
-```env
-PORT=5000
-MONGO_URI=mongodb+srv://...
-JWT_SECRET=votre_secret_jwt
-EMAIL_USER=contact@nantes-wifi.fr
-EMAIL_PASS=votre_mot_de_passe
-FRONTEND_URL=https://nantes-wifi.fr
-```
+## 🧪 Tests recommandés
 
----
+- responsive : mobile, tablette et ordinateur ;
+- validation et erreurs du formulaire ;
+- rate limits du contact et de l’authentification ;
+- connexion, token expiré et route protégée ;
+- chargement de `robots.txt` et `sitemap.xml` ;
+- métadonnées et données structurées ;
+- Consent Mode v2 dans Tag Assistant ;
+- événements GA4 dans DebugView ;
+- conversion Google Ads après un test de formulaire.
 
-## 🔄 Flux utilisateur
-Visiteur → Home → Services → Tarifs
-↓
-Formulaire contact
-↓
-Backend (validation + email)
-↓
-Admin reçoit l'email + dashboard
-↓
-Conversion client
+## 🗺️ Roadmap
 
----
-
-## 🧪 Tests
-
-- Tests API : Postman (collection complète)
-- Tests responsive : Mobile, tablette, desktop
-- Tests formulaire : validation, rate limit, emails
-- Tests auth : login, token expiré, route protégée
-
----
-
-## 💡 Bonus stratégique
-
-> Objectif : **générer des clients automatiquement**
-
+- [x] Pages publiques
+- [x] Dashboard administrateur
+- [x] API REST
+- [x] Validation et protections principales
+- [x] SEO local et données structurées
+- [x] GA4, GTM, Google Ads et Consent Mode v2
+- [x] Sitemap et règles robots
 - [ ] Bouton WhatsApp flottant
-- [ ] Numéro de téléphone cliquable
-- [ ] CTA "Devis gratuit en 2 min"
-- [ ] Section avis clients (preuve sociale)
-- [ ] Chat en ligne
+- [ ] Avis clients et preuve sociale
 - [ ] Réservation de créneau
-- [ ] Paiement en ligne (Stripe)
-- [ ] CRM intégré
+- [ ] Paiement Stripe
+- [ ] Intégration CRM
+- [ ] CI/CD et tests automatisés
+- [ ] Déploiement et validation finale des outils Google
 
----
+## 👤 Auteur
 
-## 🌱 Données de seed
-
-```bash
-# Créer les données de test (50 contacts + 3 offres + 1 admin)
-cd backend
-npx ts-node src/scripts/seed.ts
-
-# Admin par défaut
-Email    : admin@nantes-wifi.fr
-Password : 123456
-```
-
----
-
-## 📅 Planning réalisé
-
-| Étape | Statut |
-|---|---|
-| Design UI/UX | ✅ Terminé |
-| Frontend — Pages publiques | ✅ Terminé |
-| Frontend — Dashboard admin | ✅ Terminé |
-| Backend — API REST | ✅ Terminé |
-| Sécurité (Zod, Helmet, Rate limit) | ✅ Terminé |
-| SEO & Analytics | ✅ Terminé |
-| Déploiement | 🔄 En cours |
-
----
-
-## 📌 Auteur
-
-Projet réalisé par **HAMDI Mohamed**  
-Dans le cadre d'un projet de solution WiFi professionnelle à Nantes.
-
----
+Projet réalisé par **HAMDI Mohamed** dans le cadre d’une solution Wi-Fi professionnelle à Nantes.
 
 ## 📜 Licence
 
-Projet privé — usage commercial.  
-Tous droits réservés © 2025 Nantes WiFi Solutions.
+Projet privé à usage commercial.  
+Tous droits réservés © 2026 Nantes WiFi Solutions.
