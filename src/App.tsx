@@ -7,15 +7,14 @@ import { PAGES_SEO } from "./seo/seo.config";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import CookieConsent from "./components/CookieConsent";
 
-// 🌐 Pages publiques
 import Home from "./pages/Home";
 import Services from "./pages/Services";
 import Pricing from "./pages/Pricing";
 import Contact from "./pages/Contact";
 import Legal from "./pages/Legal";
 
-// 🔐 Admin
 import Login from "./pages/Admin/Login";
 import Dashboard from "./pages/Admin/Dashboard";
 import PrivateRoute from "./routes/PrivateRoute";
@@ -23,17 +22,12 @@ import PrivateRoute from "./routes/PrivateRoute";
 export default function App() {
   return (
     <>
-      {/* ✅ Global */}
       <SchemaOrg />
       <GoogleAnalytics />
 
       <Navbar />
 
       <Routes>
-        {/* ===================== */}
-        {/* 🌐 PUBLIC */}
-        {/* ===================== */}
-
         <Route
           path="/"
           element={
@@ -43,7 +37,6 @@ export default function App() {
             </>
           }
         />
-
         <Route
           path="/services"
           element={
@@ -53,7 +46,6 @@ export default function App() {
             </>
           }
         />
-
         <Route
           path="/tarifs"
           element={
@@ -63,7 +55,6 @@ export default function App() {
             </>
           }
         />
-
         <Route
           path="/contact"
           element={
@@ -74,23 +65,9 @@ export default function App() {
           }
         />
 
-        {/* LEGAL */}
-        <Route
-          path="/mentions-legales"
-          element={<Legal defaultTab={0} />}
-        />
-        <Route
-          path="/cgu-cgv"
-          element={<Legal defaultTab={1} />}
-        />
-        <Route
-          path="/confidentialite"
-          element={<Legal defaultTab={2} />}
-        />
-
-        {/* ===================== */}
-        {/* 🔐 ADMIN */}
-        {/* ===================== */}
+        <Route path="/mentions-legales" element={<Legal defaultTab={0} />} />
+        <Route path="/cgu-cgv" element={<Legal defaultTab={1} />} />
+        <Route path="/confidentialite" element={<Legal defaultTab={2} />} />
 
         <Route
           path="/admin/login"
@@ -98,23 +75,22 @@ export default function App() {
             <>
               <SEOHead
                 title="Admin — Nantes WiFi Solutions"
-                description="Connexion admin"
-                noIndex={true}
+                description="Connexion à l'administration Nantes WiFi Solutions."
+                noIndex
               />
               <Login />
             </>
           }
         />
-
         <Route
           path="/admin/dashboard"
           element={
             <PrivateRoute>
               <>
                 <SEOHead
-                  title="Dashboard — Admin"
-                  description="Interface d'administration"
-                  noIndex={true}
+                  title="Dashboard — Nantes WiFi Solutions"
+                  description="Interface privée d'administration."
+                  noIndex
                 />
                 <Dashboard />
               </>
@@ -122,13 +98,11 @@ export default function App() {
           }
         />
 
-        {/* ===================== */}
-        {/* 🔁 FALLBACK */}
-        {/* ===================== */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
 
       <Footer />
+      <CookieConsent />
     </>
   );
 }
