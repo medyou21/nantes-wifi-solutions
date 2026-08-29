@@ -10,7 +10,7 @@ import Footer from "./components/Footer";
 import CookieConsent from "./components/CookieConsent";
 
 import Home from "./pages/Home";
-import Services from "./pages/Services";
+import Services from "./pages/services";
 import Pricing from "./pages/Pricing";
 import Contact from "./pages/Contact";
 import Legal from "./pages/Legal";

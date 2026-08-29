@@ -1,54 +1,87 @@
 import { Card, CardContent, Typography, Button, Box } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
+import { useNavigate } from "react-router-dom";
 
+// ─────────────────────────────────────────────
+// TYPES DU COMPOSANT (props pricing card)
+// ─────────────────────────────────────────────
 type Props = {
-  title: string;
-  price: string;
-  period?: string;
-  features: string[];
-  highlight?: boolean;
-  dark?: boolean;
+  title: string;          // nom du forfait (Starter, Pro...)
+  price: string;          // prix affiché (ex: "29€/mois")
+  period?: string;        // période optionnelle (ex: "/mois")
+  features: string[];     // liste des fonctionnalités
+  service: string;       // service associé
+  highlight?: boolean;   // carte mise en avant (populaire)
+  dark?: boolean;        // mode sombre
 };
 
+// type utilisé pour navigation vers contact
+type ContactState = {
+  service: string;
+  plan: string;
+  price: string;
+};
+
+// ─────────────────────────────────────────────
+// COMPOSANT PRINCIPAL
+// ─────────────────────────────────────────────
 export default function PricingCard({
   title,
   price,
   period,
   features,
+  service,
   highlight,
   dark,
 }: Props) {
+
+  const navigate = useNavigate();
+
   return (
+    // ─────────────────────────────
+    // CARD PRINCIPALE
+    // ─────────────────────────────
     <Card
       sx={{
         position: "relative",
         borderRadius: "16px",
         textAlign: "center",
+
+        // ── BACKGROUND DYNAMIQUE ──
         background: dark
           ? "#0a0e1a"
           : highlight
           ? "linear-gradient(160deg, #1a2a4a 0%, #0d1a35 100%)"
           : "rgba(255,255,255,0.05)",
+
+        // ── BORDURE DYNAMIQUE ──
         border: highlight
           ? "2px solid #1e6fd9"
           : dark
           ? "2px solid #1e3a6e"
           : "1px solid rgba(255,255,255,0.1)",
+
+        // ── OMBRE STYLE SaaS ──
         boxShadow: highlight
           ? "0 0 40px rgba(30,111,217,0.35), 0 20px 40px rgba(0,0,0,0.5)"
           : "0 8px 24px rgba(0,0,0,0.4)",
+
+        // effet zoom léger si mise en avant
         transform: highlight ? "scale(1.04)" : "scale(1)",
-        transition: "transform 0.3s, box-shadow 0.3s",
+        transition: "0.3s ease",
+
         overflow: "visible",
+
+        // effet hover
         "&:hover": {
           transform: highlight ? "scale(1.06)" : "scale(1.02)",
-          boxShadow: highlight
-            ? "0 0 60px rgba(30,111,217,0.5), 0 24px 48px rgba(0,0,0,0.6)"
-            : "0 12px 32px rgba(0,0,0,0.5)",
         },
       }}
     >
-      {/* BADGE "LE PLUS CHOISI" */}
+
+      {/* ─────────────────────────────
+          BADGE "LE PLUS CHOISI"
+      ───────────────────────────── */}
       {highlight && (
         <Box
           sx={{
@@ -56,162 +89,118 @@ export default function PricingCard({
             top: -16,
             left: "50%",
             transform: "translateX(-50%)",
+
             background: "linear-gradient(90deg, #1565c0, #1e88e5)",
             color: "#fff",
             px: 2.5,
             py: 0.6,
             borderRadius: "20px",
+
             fontSize: 11,
             fontWeight: 800,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            whiteSpace: "nowrap",
-            boxShadow: "0 4px 12px rgba(21,101,192,0.5)",
           }}
         >
           Le plus choisi
         </Box>
       )}
 
-      <CardContent sx={{ p: 4, pt: highlight ? 5 : 4 }}>
-        {/* TITLE */}
+      {/* ─────────────────────────────
+          CONTENU CARTE
+      ───────────────────────────── */}
+      <CardContent sx={{ p: 4 }}>
+
+        {/* TITRE DU FORFAIT */}
         <Typography
           sx={{
             fontWeight: 800,
-            fontSize: highlight ? "1.5rem" : "1.25rem",
+            fontSize: "1.3rem",
             color: highlight ? "#4fc3f7" : "#90caf9",
-            mb: 1,
-            letterSpacing: "0.02em",
-            textTransform: "uppercase",
+            mb: 2,
           }}
         >
           {title}
         </Typography>
 
-        {/* PRICE */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "center",
-            mb: 3,
-          }}
-        >
+        {/* PRIX */}
+        <Box sx={{ mb: 3 }}>
+
+          {/* nettoyage du prix (suppression €/mois si présent) */}
           <Typography
-            component="span"
             sx={{
+              fontSize: "2.5rem",
               fontWeight: 900,
-              fontSize: "3.5rem",
-              lineHeight: 1,
-              color: "#ffffff",
-              letterSpacing: "-0.02em",
+              color: "#fff",
             }}
           >
-            {price.replace(/[€/mois]/g, "")}
+            {price.replace(/[€/mois]/g, "")}€
           </Typography>
-          <Typography
-            component="span"
-            sx={{
-              fontWeight: 700,
-              fontSize: "1.5rem",
-              color: "#ffffff",
-              mt: 0.5,
-              ml: 0.3,
-            }}
-          >
-            €
-          </Typography>
+
+          {/* période */}
           {period && (
-            <Typography
-              component="span"
-              sx={{
-                fontSize: "0.85rem",
-                color: "rgba(255,255,255,0.5)",
-                alignSelf: "flex-end",
-                mb: 0.5,
-                ml: 0.5,
-              }}
-            >
+            <Typography sx={{ color: "rgba(255,255,255,0.5)" }}>
               {period}
             </Typography>
           )}
         </Box>
 
-        {/* DIVIDER */}
-        <Box
-          sx={{
-            height: "1px",
-            background: "rgba(255,255,255,0.1)",
-            mb: 3,
-          }}
-        />
-
-        {/* FEATURES */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 1.5,
-            mb: 4,
-            textAlign: "left",
-          }}
-        >
-          {features.map((f, i) => (
+        {/* ─────────────────────────────
+            LISTE DES FEATURES
+        ───────────────────────────── */}
+        <Box sx={{ textAlign: "left", mb: 3 }}>
+          {features.map((feature) => (
             <Box
-              key={i}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1.2,
-              }}
+              key={feature}
+              sx={{ display: "flex", gap: 1, mb: 1 }}
             >
+              {/* icône validation */}
               <CheckCircleOutlineIcon
-                sx={{
-                  color: "#1e88e5",
-                  fontSize: 18,
-                  flexShrink: 0,
-                }}
+                sx={{ color: "#1e88e5", fontSize: 18 }}
               />
+
+              {/* texte feature */}
               <Typography
                 sx={{
-                  fontSize: "0.875rem",
                   color: "rgba(255,255,255,0.8)",
-                  lineHeight: 1.4,
+                  fontSize: 14,
                 }}
               >
-                {f}
+                {feature}
               </Typography>
             </Box>
           ))}
         </Box>
 
-        {/* BUTTON */}
+        {/* ─────────────────────────────
+            BOUTON ACTION
+        ───────────────────────────── */}
         <Button
-          variant="contained"
           fullWidth
+          variant="contained"
+
+          // navigation vers contact avec état
+          onClick={() =>
+            navigate("/contact", {
+              state: {
+                service,
+                plan: title,
+                price,
+              } as ContactState,
+            })
+          }
+
           sx={{
-            borderRadius: "8px",
-            py: 1.3,
-            fontWeight: 700,
-            fontSize: "0.8rem",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
             background: highlight
               ? "linear-gradient(90deg, #1565c0, #1e88e5)"
               : "rgba(30,111,217,0.25)",
-            border: highlight ? "none" : "1px solid rgba(30,111,217,0.6)",
+
             color: "#fff",
-            boxShadow: highlight
-              ? "0 4px 16px rgba(21,101,192,0.4)"
-              : "none",
-            "&:hover": {
-              background: "linear-gradient(90deg, #1565c0, #1e88e5)",
-              boxShadow: "0 6px 20px rgba(21,101,192,0.5)",
-            },
+            fontWeight: 700,
+            textTransform: "none",
           }}
         >
           Choisir ce forfait
         </Button>
+
       </CardContent>
     </Card>
   );

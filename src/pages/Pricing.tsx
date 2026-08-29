@@ -2,20 +2,24 @@ import {
   Box,
   Typography,
   CircularProgress,
-  Button,
-  Chip,
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import StarIcon from "@mui/icons-material/Star";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import PricingCard from "../components/PricingCard";
 
+/** Composant MUI Box enrichi des props d'animation Framer Motion. */
 const MotionBox = motion.create(Box);
-const MotionButton = motion.create(Button as any);
 
+// ─────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────
+
+/**
+ * Structure d'une offre commerciale retournée par l'API.
+ * Correspond au modèle Mongoose `Offer` côté backend.
+ */
 interface Offer {
   _id: string;
   title: string;
@@ -24,33 +28,73 @@ interface Offer {
   features: string[];
 }
 
-// Critères du tableau comparatif
+// ─────────────────────────────────────────────
+// DONNÉES — TABLEAU COMPARATIF
+// ─────────────────────────────────────────────
+
+/**
+ * Lignes du tableau de comparaison des trois formules.
+ * Chaque entrée décrit une fonctionnalité et sa disponibilité
+ * par formule (basic / confort / pro) via des booléens.
+ *
+ * Déclaré en constante statique : ces données ne dépendent pas
+ * de l'API et n'ont pas vocation à changer souvent.
+ * Si elles devaient devenir dynamiques, les inclure dans la réponse API.
+ */
 const compareRows = [
-  { label: "Diagnostic Wi-Fi",            basic: true,  confort: true,  pro: true  },
-  { label: "Optimisation réseau",         basic: true,  confort: true,  pro: true  },
-  { label: "Vérification sécurité",       basic: true,  confort: true,  pro: true  },
-  { label: "Installation avancée",        basic: false, confort: true,  pro: true  },
-  { label: "Matériel inclus",             basic: false, confort: true,  pro: true  },
-  { label: "Support email",               basic: true,  confort: true,  pro: true  },
-  { label: "Support 24/7",               basic: false, confort: false, pro: true  },
-  { label: "Réseau professionnel",        basic: false, confort: false, pro: true  },
-  { label: "Surveillance en continu",     basic: false, confort: false, pro: true  },
-  { label: "Dashboard admin",             basic: false, confort: false, pro: true  },
-  { label: "SLA garanti",                basic: false, confort: false, pro: true  },
-  { label: "Audit réseau mensuel",        basic: false, confort: false, pro: true  },
+  { label: "Diagnostic Wi-Fi",       basic: true,  confort: true,  pro: true  },
+  { label: "Optimisation réseau",    basic: true,  confort: true,  pro: true  },
+  { label: "Vérification sécurité",  basic: true,  confort: true,  pro: true  },
+  { label: "Installation avancée",   basic: false, confort: true,  pro: true  },
+  { label: "Matériel inclus",        basic: false, confort: true,  pro: true  },
+  { label: "Support email",          basic: true,  confort: true,  pro: true  },
+  { label: "Support 24/7",           basic: false, confort: false, pro: true  },
+  { label: "Réseau professionnel",   basic: false, confort: false, pro: true  },
+  { label: "Surveillance en continu",basic: false, confort: false, pro: true  },
+  { label: "Dashboard admin",        basic: false, confort: false, pro: true  },
+  { label: "SLA garanti",            basic: false, confort: false, pro: true  },
+  { label: "Audit réseau mensuel",   basic: false, confort: false, pro: true  },
 ];
 
+/**
+ * Couleurs des trois colonnes du tableau comparatif.
+ * Alignées avec les styles visuels des PricingCard correspondantes :
+ *  - [0] Basic       → bleu clair
+ *  - [1] Confort     → bleu vif (formule mise en avant)
+ *  - [2] Pro         → orange (formule premium)
+ */
 const colColors = ["#64B5F6", "#2979FF", "#FF6D00"];
-const colLabels = ["Basic", "Confort", "Pro Entreprise"];
-const colPrices = ["79€", "199€", "499€/mois"];
-const colPopular = [false, true, false];
 
+// ─────────────────────────────────────────────
+// COMPOSANT PRINCIPAL : Pricing
+// ─────────────────────────────────────────────
+
+/**
+ * Page des tarifs — affiche les offres récupérées depuis l'API
+ * sous forme de cartes, suivies d'un tableau comparatif statique.
+ *
+ * Flux de données :
+ *  1. `useEffect` déclenche un fetch vers `GET /api/offers` au montage.
+ *  2. Les états `loading` / `error` / `plans` pilotent l'affichage conditionnel.
+ *  3. Chaque offre est rendue via `PricingCard` avec un style visuel
+ *     déterminé par sa position dans le tableau (highlight sur la 2e formule).
+ *
+ * Le tableau comparatif est entièrement statique et indépendant de l'API.
+ */
 export default function Pricing() {
-  const [plans, setPlans] = useState<Offer[]>([]);
+  const [plans, setPlans]   = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const [error, setError]   = useState<string | null>(null);
 
+  // ── Chargement des offres ─────────────────────────────────────────
+  /**
+   * Fetch des offres au montage du composant.
+   * Le tableau de dépendances vide `[]` garantit un seul appel réseau,
+   * équivalent à un `componentDidMount` en classe.
+   *
+   * `finally` assure que `loading` repasse à `false` qu'il y ait
+   * succès ou erreur — évite un spinner infini en cas d'échec réseau.
+   */
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/offers`)
       .then((res) => {
@@ -62,37 +106,32 @@ export default function Pricing() {
       .finally(() => setLoading(false));
   }, []);
 
-  const cardStyles = [
-    { highlight: false, dark: false },
-    { highlight: true,  dark: false },
-    { highlight: false, dark: true  },
-  ];
-
   return (
-    <Box
-      sx={{
-        background: "linear-gradient(180deg, #0A1628 0%, #000000 100%)",
-        minHeight: "100vh",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      {/* Ambient glow */}
+    <Box sx={{
+      background: "linear-gradient(180deg, #0A1628 0%, #000000 100%)",
+      minHeight: "100vh",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+
+      {/* Halo lumineux décoratif — effet glow bleu centré en arrière-plan */}
       <Box sx={{
-        position: "absolute", width: 700, height: 500,
+        position: "absolute",
+        width: 700, height: 500,
         background: "radial-gradient(ellipse, rgba(0,80,255,0.08) 0%, transparent 70%)",
-        top: "5%", left: "50%", transform: "translateX(-50%)", pointerEvents: "none",
+        top: "5%", left: "50%", transform: "translateX(-50%)",
       }}/>
 
       <Box sx={{ px: { xs: 2, md: 8 }, py: { xs: 8, md: 12 }, position: "relative", zIndex: 1 }}>
 
-        {/* ── HEADER ── */}
+        {/* ── HEADER ─────────────────────────────────────────────────── */}
         <MotionBox
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           sx={{ textAlign: "center", mb: { xs: 8, md: 10 } }}
         >
+          {/* Badge "NOS OFFRES" */}
           <Box sx={{
             display: "inline-block", px: 3, py: 0.75, borderRadius: "20px",
             background: "#fff", border: "1px solid #e0e0e0",
@@ -104,6 +143,8 @@ export default function Pricing() {
               NOS OFFRES
             </Typography>
           </Box>
+
+          {/* Titre sur fond blanc pour lisibilité sur fond sombre */}
           <Box>
             <Box sx={{
               display: "inline-block", px: { xs: 3, md: 6 }, py: 2,
@@ -117,29 +158,47 @@ export default function Pricing() {
               </Typography>
             </Box>
           </Box>
+
           <Typography sx={{ color: "rgba(255,255,255,0.45)", fontSize: "1rem", maxWidth: 500, mx: "auto" }}>
             Des forfaits transparents, sans surprise. Changez ou annulez à tout moment.
           </Typography>
         </MotionBox>
 
-        {/* ── LOADING / ERROR ── */}
+        {/* ── ÉTATS DE CHARGEMENT ────────────────────────────────────── */}
+
+        {/* Spinner centré pendant le fetch API */}
         {loading && (
           <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
             <CircularProgress sx={{ color: "#2979FF" }} />
           </Box>
         )}
+
+        {/* Message d'erreur si le fetch a échoué */}
         {error && (
-          <Typography sx={{ color: "#ff6b6b", textAlign: "center", py: 4 }}>
+          <Typography sx={{ color: "#ff6b6b", textAlign: "center" }}>
             {error}
           </Typography>
         )}
 
-        {/* ── PRICING CARDS ── */}
+        {/* ── CARTES TARIFAIRES ──────────────────────────────────────── */}
+        {/*
+         * Rendu uniquement si le chargement est terminé et sans erreur.
+         * Animation d'entrée depuis le bas (y: 40 → 0) sur le conteneur global.
+         *
+         * Chaque carte reçoit un style visuel déterminé par son index :
+         *  - index 0 (Basic)   : style neutre
+         *  - index 1 (Confort) : highlight = true → mise en avant visuelle
+         *  - index 2 (Pro)     : dark = true → fond sombre premium
+         *
+         * ⚠️  Le mapping titre → service est codé en dur : si les titres
+         *     changent en base, cette logique devra être mise à jour.
+         *     Envisager d'inclure un champ `serviceKey` dans le modèle Offer.
+         */}
         {!loading && !error && (
           <MotionBox
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.6 }}
             sx={{
               display: "flex",
               flexWrap: "wrap",
@@ -151,308 +210,75 @@ export default function Pricing() {
             }}
           >
             {plans.map((plan, index) => {
-              const color = colColors[index] ?? "#2979FF";
-              const isPopular = colPopular[index];
+              // Styles visuels indexés sur la position — indépendants des données API
+              const styles = [
+                { highlight: false, dark: false }, // Basic : style par défaut
+                { highlight: true,  dark: false }, // Confort : mis en avant (bordure bleue, badge)
+                { highlight: false, dark: true  }, // Pro : fond sombre premium
+              ];
+
               return (
-                <Box
-                  key={plan._id}
-                  sx={{
-                    flex: "1 1 260px",
-                    maxWidth: 300,
-                    position: "relative",
-                  }}
-                >
-                  {isPopular && (
-                    <Box sx={{
-                      position: "absolute", top: -14, left: "50%",
-                      transform: "translateX(-50%)", zIndex: 2,
-                    }}>
-                      <Chip
-                        icon={<StarIcon sx={{ fontSize: 14, color: "#fff !important" }} />}
-                        label="Le plus populaire"
-                        size="small"
-                        sx={{
-                          background: "linear-gradient(135deg, #2979FF, #1565C0)",
-                          color: "#fff", fontWeight: 700, fontSize: "0.65rem",
-                          letterSpacing: 0.5, px: 1,
-                          boxShadow: "0 4px 12px rgba(41,121,255,0.5)",
-                        }}
-                      />
-                    </Box>
-                  )}
-                  <MotionBox
-                    whileHover={{ y: -6, scale: 1.02 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                    sx={{
-                      background: isPopular
-                        ? "linear-gradient(160deg, #0D2550, #1A3A7A)"
-                        : "rgba(255,255,255,0.04)",
-                      border: `1px solid ${isPopular ? "#2979FF" : "rgba(255,255,255,0.1)"}`,
-                      borderRadius: "16px",
-                      p: 3,
-                      pt: isPopular ? 4 : 3,
-                      boxShadow: isPopular
-                        ? "0 8px 40px rgba(41,121,255,0.25)"
-                        : "0 4px 20px rgba(0,0,0,0.3)",
-                    }}
-                  >
-                    {/* Color accent top */}
-                    <Box sx={{
-                      width: 40, height: 4, borderRadius: 2,
-                      background: color, mb: 2,
-                    }}/>
-
-                    <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: "0.8rem", fontWeight: 600, mb: 0.5 }}>
-                      {plan.title}
-                    </Typography>
-                    <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.5, mb: 1 }}>
-                      <Typography sx={{ color: "#fff", fontSize: "2.2rem", fontWeight: 900 }}>
-                        {plan.price}€
-                      </Typography>
-                      {index === 2 && (
-                        <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.85rem" }}>
-                          /mois
-                        </Typography>
-                      )}
-                    </Box>
-                    <Typography sx={{ color: "rgba(255,255,255,0.45)", fontSize: "0.85rem", mb: 3, lineHeight: 1.5 }}>
-                      {plan.description}
-                    </Typography>
-
-                    {/* Features */}
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mb: 3 }}>
-                      {plan.features.map((f) => (
-                        <Box key={f} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <CheckIcon sx={{ fontSize: 16, color, flexShrink: 0 }} />
-                          <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.85rem" }}>
-                            {f}
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Box>
-
-                    <MotionButton
-                      onClick={() => navigate("/contact")}
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      fullWidth
-                      endIcon={<ArrowForwardIcon />}
-                      sx={{
-                        background: isPopular
-                          ? `linear-gradient(135deg, ${color}, #1565C0)`
-                          : `${color}22`,
-                        color: isPopular ? "#fff" : color,
-                        border: isPopular ? "none" : `1px solid ${color}44`,
-                        fontWeight: 700,
-                        py: 1.2,
-                        borderRadius: "10px",
-                        textTransform: "none",
-                        fontSize: "0.9rem",
-                        boxShadow: isPopular ? `0 4px 20px ${color}44` : "none",
-                        "&:hover": {
-                          background: isPopular
-                            ? `linear-gradient(135deg, ${color}dd, #1565C0dd)`
-                            : `${color}33`,
-                        },
-                      }}
-                    >
-                      Choisir ce forfait
-                    </MotionButton>
-                  </MotionBox>
+                <Box key={plan._id} sx={{ flex: "1 1 260px", maxWidth: 300 }}>
+                  <PricingCard
+                    title={plan.title}
+                    price={`${plan.price}`}
+                    features={plan.features}
+                    // Correspondance titre → clé de service pour le pré-remplissage
+                    // du formulaire de contact via navigate(state)
+                    service={
+                      plan.title === "Basic"          ? "Diagnostic Wi-Fi"     :
+                      plan.title === "Confort"        ? "Installation Wi-Fi"   :
+                      plan.title === "Pro Entreprise" ? "Réseau professionnel" :
+                      "Autre"
+                    }
+                    highlight={styles[index]?.highlight}
+                    dark={styles[index]?.dark}
+                  />
                 </Box>
               );
             })}
           </MotionBox>
         )}
 
-        {/* ── TABLEAU COMPARATIF ── */}
-        <MotionBox
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7 }}
-          sx={{ maxWidth: 900, mx: "auto" }}
-        >
-          {/* Titre tableau */}
-          <Box sx={{ textAlign: "center", mb: 4 }}>
-            <Typography sx={{
-              color: "rgba(255,255,255,0.3)", fontSize: "0.7rem",
-              fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", mb: 1,
-            }}>
-              Comparaison détaillée
-            </Typography>
-            <Typography variant="h5" sx={{ color: "#fff", fontWeight: 800 }}>
-              Tout ce qui est inclus
-            </Typography>
-          </Box>
-
-          {/* Table wrapper */}
-          <Box sx={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: "16px",
-            overflow: "hidden",
-          }}>
-
-            {/* Table header */}
-            <Box sx={{
-              display: "grid",
-              gridTemplateColumns: "1fr repeat(3, 100px)",
-              background: "rgba(255,255,255,0.05)",
-              borderBottom: "1px solid rgba(255,255,255,0.08)",
-              px: { xs: 2, md: 4 }, py: 2,
-            }}>
-              <Box/>
-              {colLabels.map((label, i) => (
-                <Box key={label} sx={{ textAlign: "center" }}>
-                  <Typography sx={{
-                    color: colColors[i],
-                    fontWeight: 800,
-                    fontSize: { xs: "0.75rem", md: "0.9rem" },
-                  }}>
-                    {label}
-                  </Typography>
-                  <Typography sx={{
-                    color: "rgba(255,255,255,0.4)",
-                    fontSize: { xs: "0.65rem", md: "0.75rem" },
-                  }}>
-                    {colPrices[i]}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-
-            {/* Table rows */}
-            {compareRows.map((row, rowIndex) => (
-              <Box
-                key={row.label}
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr repeat(3, 100px)",
-                  px: { xs: 2, md: 4 },
-                  py: 1.5,
-                  borderBottom: rowIndex < compareRows.length - 1
-                    ? "1px solid rgba(255,255,255,0.05)"
-                    : "none",
-                  background: rowIndex % 2 === 0
-                    ? "transparent"
-                    : "rgba(255,255,255,0.015)",
-                  "&:hover": {
-                    background: "rgba(255,255,255,0.04)",
-                  },
-                  transition: "background 0.2s",
-                }}
-              >
-                <Typography sx={{
-                  color: "rgba(255,255,255,0.65)",
-                  fontSize: { xs: "0.8rem", md: "0.9rem" },
-                  display: "flex",
-                  alignItems: "center",
-                }}>
-                  {row.label}
-                </Typography>
-                {[row.basic, row.confort, row.pro].map((val, colIndex) => (
-                  <Box key={colIndex} sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}>
-                    {val
-                      ? <CheckIcon sx={{ fontSize: 18, color: colColors[colIndex] }} />
-                      : <CloseIcon sx={{ fontSize: 18, color: "rgba(255,255,255,0.15)" }} />
-                    }
-                  </Box>
-                ))}
-              </Box>
-            ))}
-
-            {/* CTA row */}
-            <Box sx={{
-              display: "grid",
-              gridTemplateColumns: "1fr repeat(3, 100px)",
-              px: { xs: 2, md: 4 }, py: 2.5,
-              background: "rgba(255,255,255,0.03)",
-              borderTop: "1px solid rgba(255,255,255,0.08)",
-            }}>
-              <Typography sx={{ color: "rgba(255,255,255,0.3)", fontSize: "0.8rem", display: "flex", alignItems: "center" }}>
-                Commencer →
+        {/* ── TABLEAU COMPARATIF ─────────────────────────────────────── */}
+        {/*
+         * Grille CSS à 4 colonnes : 1 colonne label + 3 colonnes icônes (100px chacune).
+         * Chaque ligne affiche CheckIcon (fonctionnalité disponible) ou CloseIcon (absente),
+         * colorés selon `colColors` pour associer visuellement chaque colonne à sa formule.
+         * La dernière ligne n'a pas de bordure inférieure (condition sur l'index).
+         */}
+        <Box sx={{ maxWidth: 900, mx: "auto" }}>
+          {compareRows.map((row, i) => (
+            <Box
+              key={row.label}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr repeat(3, 100px)", // Label flexible + 3 colonnes fixes
+                px: { xs: 2, md: 4 },
+                py: 1.5,
+                // Séparateur entre les lignes — absent sur la dernière
+                borderBottom: i < compareRows.length - 1
+                  ? "1px solid rgba(255,255,255,0.05)"
+                  : "none",
+              }}
+            >
+              {/* Libellé de la fonctionnalité */}
+              <Typography sx={{ color: "rgba(255,255,255,0.65)" }}>
+                {row.label}
               </Typography>
-              {colColors.map((color, i) => (
-                <Box key={i} sx={{ display: "flex", justifyContent: "center" }}>
-                  <MotionButton
-                    onClick={() => navigate("/contact")}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    size="small"
-                    sx={{
-                      background: colPopular[i]
-                        ? `linear-gradient(135deg, ${color}, #1565C0)`
-                        : `${color}18`,
-                      color: colPopular[i] ? "#fff" : color,
-                      border: colPopular[i] ? "none" : `1px solid ${color}33`,
-                      fontWeight: 700,
-                      borderRadius: "8px",
-                      textTransform: "none",
-                      fontSize: "0.7rem",
-                      px: 1.5,
-                      py: 0.75,
-                      minWidth: 0,
-                      boxShadow: colPopular[i] ? `0 4px 16px ${color}44` : "none",
-                      "&:hover": {
-                        background: colPopular[i]
-                          ? `linear-gradient(135deg, ${color}dd, #1565C0dd)`
-                          : `${color}28`,
-                      },
-                    }}
-                  >
-                    Choisir
-                  </MotionButton>
+
+              {/* Icônes pour chaque formule (basic, confort, pro) */}
+              {[row.basic, row.confort, row.pro].map((val, idx) => (
+                <Box key={idx} sx={{ display: "flex", justifyContent: "center" }}>
+                  {val
+                    ? <CheckIcon sx={{ color: colColors[idx] }} />          // ✓ disponible
+                    : <CloseIcon sx={{ color: "rgba(255,255,255,0.2)" }} /> // ✗ non disponible
+                  }
                 </Box>
               ))}
             </Box>
-          </Box>
-        </MotionBox>
-
-        {/* ── FAQ RAPIDE ── */}
-        <MotionBox
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          sx={{
-            mt: { xs: 10, md: 14 },
-            textAlign: "center",
-            maxWidth: 600,
-            mx: "auto",
-            background: "rgba(41,121,255,0.06)",
-            border: "1px solid rgba(41,121,255,0.15)",
-            borderRadius: "16px",
-            p: { xs: 4, md: 6 },
-          }}
-        >
-          <Typography variant="h6" sx={{ color: "#fff", fontWeight: 800, mb: 1 }}>
-            Une question sur nos tarifs ?
-          </Typography>
-          <Typography sx={{ color: "rgba(255,255,255,0.45)", fontSize: "0.95rem", mb: 3 }}>
-            Notre équipe vous répond sous 2h et vous aide à choisir le bon forfait.
-          </Typography>
-          <MotionButton
-            onClick={() => navigate("/contact")}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
-            endIcon={<ArrowForwardIcon />}
-            sx={{
-              background: "linear-gradient(135deg, #2979FF, #1565C0)",
-              color: "#fff", fontWeight: 700,
-              px: 4, py: 1.4, borderRadius: "10px",
-              textTransform: "none", fontSize: "0.95rem",
-              boxShadow: "0 4px 20px rgba(41,121,255,0.4)",
-              "&:hover": { boxShadow: "0 6px 28px rgba(41,121,255,0.6)" },
-            }}
-          >
-            Nous contacter
-          </MotionButton>
-        </MotionBox>
+          ))}
+        </Box>
 
       </Box>
     </Box>

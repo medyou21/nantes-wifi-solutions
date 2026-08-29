@@ -2,12 +2,24 @@ import { Box, Typography, Tabs, Tab } from "@mui/material";
 import { motion } from "framer-motion";
 import { useState } from "react";
 
+/** Composant MUI Box enrichi des props d'animation Framer Motion. */
 const MotionBox = motion.create(Box);
 
 // ─────────────────────────────────────────────
-// DONNÉES
+// DONNÉES LÉGALES
 // ─────────────────────────────────────────────
 
+/**
+ * Contenu des trois sections légales, structuré en tableaux de cartes.
+ * Chaque entrée contient un titre de section et un tableau de paragraphes.
+ *
+ * Convention de formatage dans `content` :
+ *  - `**texte**` → rendu en gras par le composant `RenderText`
+ *  - `•`         → puce manuelle (pas de liste HTML, pour rester dans Typography)
+ *
+ * Ces données sont séparées du JSX pour faciliter la mise à jour
+ * du contenu légal sans toucher à la logique de rendu.
+ */
 const mentionsData = [
   {
     title: "Éditeur du site",
@@ -184,9 +196,23 @@ const privacyData = [
 ];
 
 // ─────────────────────────────────────────────
-// COMPOSANTS INTERNES
+// SOUS-COMPOSANTS
 // ─────────────────────────────────────────────
 
+/**
+ * Transforme une chaîne contenant des balises `**texte**`
+ * en JSX avec les passages en gras rendus via un `<span>` stylé.
+ *
+
+ * texte normal (indices pairs) et texte gras (indices impairs).
+ * Cette approche évite d'injecter du HTML brut (dangerouslySetInnerHTML)
+ * tout en restant lisible et sécurisée.
+ *
+ * @example
+ * "Bonjour **monde**" → ["Bonjour ", "monde", ""]
+ * index 0 (pair)  → texte normal
+ * index 1 (impair) → <span> gras
+ */
 function RenderText({ text }: { text: string }) {
   const parts = text.split(/\*\*(.*?)\*\*/g);
   return (
@@ -200,28 +226,48 @@ function RenderText({ text }: { text: string }) {
   );
 }
 
+/**
+ * Carte de section légale animée.
+ *
+ * Affiche un numéro d'ordre (01, 02…), un titre et son contenu textuel.
+ * L'animation `whileInView` se déclenche à l'entrée dans le viewport
+ * avec un léger délai échelonné (`index * 0.05s`) pour un effet cascade.
+ *
+ * `viewport={{ once: true }}` garantit que l'animation ne se rejoue pas
+ * au scroll retour — comportement standard et moins distrayant.
+ *
+ * @param title   - Titre de la section légale
+ * @param content - Tableau de paragraphes (avec support `**gras**`)
+ * @param index   - Position dans la liste (pour le numéro et le délai d'animation)
+ */
 function SectionCard({ title, content, index }: { title: string; content: string[]; index: number }) {
   return (
     <MotionBox
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
+      viewport={{ once: true, margin: "-40px" }} // Déclenche l'animation 40px avant d'entrer dans le viewport
       transition={{ duration: 0.45, delay: index * 0.05 }}
       sx={{
         background: "rgba(255,255,255,0.03)",
         border: "1px solid rgba(255,255,255,0.07)",
         borderRadius: "14px",
         p: { xs: 3, md: 4 },
-        "&:hover": { borderColor: "rgba(41,121,255,0.2)", background: "rgba(255,255,255,0.04)" },
+        "&:hover": {
+          borderColor: "rgba(41,121,255,0.2)",
+          background: "rgba(255,255,255,0.04)",
+        },
         transition: "all 0.3s",
       }}
     >
+      {/* En-tête de carte : numéro + titre */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2.5 }}>
+        {/* Badge numéro — formaté sur 2 chiffres (01, 02…) via padStart */}
         <Box sx={{
           width: 32, height: 32, borderRadius: "8px",
           background: "rgba(41,121,255,0.15)",
           border: "1px solid rgba(41,121,255,0.3)",
-          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0, // Empêche le badge de se réduire si le titre est long
         }}>
           <Typography sx={{ color: "#2979FF", fontSize: "0.68rem", fontWeight: 800 }}>
             {String(index + 1).padStart(2, "0")}
@@ -231,6 +277,8 @@ function SectionCard({ title, content, index }: { title: string; content: string
           {title}
         </Typography>
       </Box>
+
+      {/* Corps de la carte : indentation sur desktop pour aligner avec le titre */}
       <Box sx={{ pl: { xs: 0, md: 6 }, display: "flex", flexDirection: "column", gap: 1 }}>
         {content.map((line, i) => <RenderText key={i} text={line} />)}
       </Box>
@@ -242,6 +290,11 @@ function SectionCard({ title, content, index }: { title: string; content: string
 // CONFIG ONGLETS
 // ─────────────────────────────────────────────
 
+/**
+ * Configuration des trois onglets de la page légale.
+ * Centralise le label affiché et les données associées —
+ * ajouter un onglet revient à ajouter une entrée ici.
+ */
 const tabs = [
   { label: "Mentions légales", data: mentionsData },
   { label: "CGU / CGV",        data: cguData      },
@@ -249,13 +302,34 @@ const tabs = [
 ];
 
 // ─────────────────────────────────────────────
-// EXPORT PAR DÉFAUT — accepte defaultTab
+// COMPOSANT PRINCIPAL : Legal
 // ─────────────────────────────────────────────
 
 interface LegalProps {
+  /**
+   * Onglet affiché par défaut à l'ouverture de la page.
+   * Permet à d'autres pages (ex: footer) de pointer directement
+   * vers "CGU" (1) ou "Confidentialité" (2) via les props du composant.
+   * Par défaut : 0 (Mentions légales).
+   */
   defaultTab?: 0 | 1 | 2;
 }
 
+/**
+ * Page légale multi-onglets (Mentions légales / CGU-CGV / Confidentialité).
+ *
+ * Architecture :
+ *  - Les données sont entièrement déclaratives (tableaux de constantes).
+ *  - Le rendu est générique : `SectionCard` et `RenderText` s'adaptent
+ *    à n'importe quel contenu sans modification.
+ *  - `defaultTab` permet un deep-link vers un onglet spécifique.
+ *
+ * Animations :
+ *  - Header : slide depuis le haut au montage.
+ *  - Contenu : fade + slide vers le haut à chaque changement d'onglet
+ *    (grâce à `key={activeTab}` qui force le remontage de MotionBox).
+ *  - Cartes : cascade progressive `whileInView` au scroll.
+ */
 export default function Legal({ defaultTab = 0 }: LegalProps) {
   const [activeTab, setActiveTab] = useState<number>(defaultTab);
 
@@ -268,7 +342,8 @@ export default function Legal({ defaultTab = 0 }: LegalProps) {
       position: "relative",
       overflow: "hidden",
     }}>
-      {/* Glow */}
+
+      {/* Halo lumineux décoratif — ne capte pas les événements souris */}
       <Box sx={{
         position: "absolute", width: 500, height: 400,
         background: "radial-gradient(ellipse, rgba(0,80,255,0.06) 0%, transparent 70%)",
@@ -277,13 +352,14 @@ export default function Legal({ defaultTab = 0 }: LegalProps) {
 
       <Box sx={{ position: "relative", zIndex: 1, maxWidth: 820, mx: "auto" }}>
 
-        {/* HEADER */}
+        {/* ── HEADER ─────────────────────────────────────────────────── */}
         <MotionBox
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           sx={{ textAlign: "center", mb: { xs: 5, md: 8 } }}
         >
+          {/* Badge catégorie */}
           <Box sx={{
             display: "inline-block", px: 3, py: 0.75, borderRadius: "20px",
             background: "#fff", border: "1px solid #e0e0e0",
@@ -293,6 +369,8 @@ export default function Legal({ defaultTab = 0 }: LegalProps) {
               INFORMATIONS LÉGALES
             </Typography>
           </Box>
+
+          {/* Titre dynamique — se met à jour avec l'onglet actif */}
           <Box>
             <Box sx={{
               display: "inline-block", px: { xs: 3, md: 6 }, py: 2,
@@ -304,18 +382,24 @@ export default function Legal({ defaultTab = 0 }: LegalProps) {
               </Typography>
             </Box>
           </Box>
+
           <Typography sx={{ color: "rgba(255,255,255,0.35)", fontSize: "0.82rem", mt: 0.5 }}>
             Dernière mise à jour : avril 2026
           </Typography>
         </MotionBox>
 
-        {/* TABS */}
+        {/* ── NAVIGATION PAR ONGLETS ─────────────────────────────────── */}
+        {/*
+         * Rendu custom : l'indicateur actif est un fond plein (via height: "100%")
+         * plutôt que le trait de soulignement MUI par défaut — effet "pill" sélectionné.
+         * `zIndex: 0` sur l'indicator / `zIndex: 1` sur les tabs pour que le texte
+         * reste lisible au-dessus du fond coloré.
+         */}
         <Box sx={{
           background: "rgba(255,255,255,0.04)",
           border: "1px solid rgba(255,255,255,0.08)",
           borderRadius: "14px",
-          p: 0.5,
-          mb: 5,
+          p: 0.5, mb: 5,
         }}>
           <Tabs
             value={activeTab}
@@ -326,7 +410,7 @@ export default function Legal({ defaultTab = 0 }: LegalProps) {
               "& .MuiTabs-indicator": {
                 background: "linear-gradient(135deg, #2979FF, #1565C0)",
                 borderRadius: "10px",
-                height: "100%",
+                height: "100%", // Fond plein sur toute la hauteur du tab (effet pill)
                 zIndex: 0,
               },
               "& .MuiTab-root": {
@@ -346,7 +430,13 @@ export default function Legal({ defaultTab = 0 }: LegalProps) {
           </Tabs>
         </Box>
 
-        {/* CONTENT */}
+        {/* ── CONTENU DE L'ONGLET ACTIF ─────────────────────────────── */}
+        {/*
+         * `key={activeTab}` force React à démonter/remonter MotionBox
+         * à chaque changement d'onglet, relançant l'animation `initial → animate`.
+         * Sans cette clé, Framer Motion ne rejouerait pas l'animation
+         * car le composant resterait monté (seul son contenu changerait).
+         */}
         <MotionBox
           key={activeTab}
           initial={{ opacity: 0, y: 16 }}
@@ -359,7 +449,7 @@ export default function Legal({ defaultTab = 0 }: LegalProps) {
           ))}
         </MotionBox>
 
-        {/* FOOTER NOTE */}
+        {/* ── NOTE DE BAS DE PAGE ────────────────────────────────────── */}
         <MotionBox
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -374,6 +464,7 @@ export default function Legal({ defaultTab = 0 }: LegalProps) {
         >
           <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.82rem" }}>
             Pour toute question relative à ces informations légales, contactez-nous à{" "}
+            {/* Lien mailto rendu comme span inline via component="a" */}
             <Box component="a" href="mailto:contact@nantes-wifi-solutions.fr" sx={{
               color: "#2979FF", textDecoration: "none", fontWeight: 600,
               "&:hover": { textDecoration: "underline" },

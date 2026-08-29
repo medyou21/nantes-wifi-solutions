@@ -7,8 +7,43 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
+/** Composant MUI Box enrichi des props d'animation Framer Motion. */
 const MotionBox = motion.create(Box);
 
+// ─────────────────────────────────────────────
+// MAPPING — Tunnel de conversion Services → Contact
+// ─────────────────────────────────────────────
+
+/**
+ * Correspondance entre l'identifiant interne d'un service (`service.id`)
+ * et le label attendu par le `<select>` du formulaire de contact (`contact.tsx`).
+ *
+ * Ce mapping découple les données internes (clés courtes) du contrat
+ * d'interface du formulaire (libellés affichés dans le select).
+ * Si un libellé change dans `contact.tsx`, c'est ici qu'on le met à jour.
+ */
+const serviceContactLabel: Record<string, string> = {
+  diagnostic:   "Diagnostic Wi-Fi",
+  installation: "Installation Wi-Fi",
+  securite:     "Sécurité & Surveillance",
+};
+
+// ─────────────────────────────────────────────
+// DONNÉES — Services
+// ─────────────────────────────────────────────
+
+/**
+ * Catalogue des trois services proposés.
+ * Chaque entrée est auto-suffisante : elle contient les textes,
+ * la palette de couleurs, les bénéfices, les cibles et l'illustration SVG.
+ *
+ * Centraliser les données ici (plutôt que dans le JSX) permet de :
+ *  - Ajouter un service en ajoutant une entrée sans toucher au rendu.
+ *  - Maintenir facilement les libellés et couleurs de manière cohérente.
+ *
+ * Les illustrations sont des SVG inline : légers, scalables, thématisés
+ * sans dépendance externe et sans requête réseau supplémentaire.
+ */
 const services = [
   {
     id: "diagnostic",
@@ -29,31 +64,39 @@ const services = [
       "Analyse des interférences",
     ],
     targets: ["Particuliers", "PME", "Hôtels"],
+    // Illustration : routeur central avec ondes Wi-Fi, zone morte (croix rouge)
+    // et zone forte (check bleu) — simule un rapport de scan en cours
     illustration: (
       <svg viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "auto" }}>
+        {/* Grille de fond — repère visuel type "dashboard réseau" */}
         {[0,1,2,3,4,5,6].map(i => (
           <line key={`h${i}`} x1="0" y1={i*30} x2="280" y2={i*30} stroke="rgba(41,121,255,0.08)" strokeWidth="1"/>
         ))}
         {[0,1,2,3,4,5,6,7,8,9].map(i => (
           <line key={`v${i}`} x1={i*35} y1="0" x2={i*35} y2="180" stroke="rgba(41,121,255,0.08)" strokeWidth="1"/>
         ))}
+        {/* Routeur central avec antennes et ondes concentriques */}
         <rect x="110" y="95" width="60" height="36" rx="6" fill="#0D1B2A" stroke="#2979FF" strokeWidth="1.5"/>
         <circle cx="130" cy="113" r="4" fill="#2979FF" opacity="0.6"/>
         <circle cx="140" cy="113" r="4" fill="#2979FF"/>
         <circle cx="150" cy="113" r="4" fill="#2979FF" opacity="0.6"/>
         <rect x="133" y="91" width="4" height="10" rx="2" fill="#2979FF"/>
         <rect x="143" y="88" width="4" height="13" rx="2" fill="#2979FF"/>
+        {/* Ondes Wi-Fi — opacité décroissante pour l'effet de propagation */}
         {[1,2,3].map(i => (
           <path key={i} d={`M${140-i*28},${90-i*8} Q140,${70-i*16} ${140+i*28},${90-i*8}`}
             stroke="#2979FF" strokeWidth="2" fill="none" opacity={1.1-i*0.3} strokeLinecap="round"/>
         ))}
+        {/* Zone morte — croix rouge avec bordure en pointillés */}
         <circle cx="48" cy="60" r="22" fill="rgba(255,80,80,0.08)" stroke="rgba(255,80,80,0.4)" strokeWidth="1.5" strokeDasharray="4 3"/>
         <line x1="38" y1="50" x2="58" y2="70" stroke="rgba(255,80,80,0.6)" strokeWidth="2" strokeLinecap="round"/>
         <line x1="58" y1="50" x2="38" y2="70" stroke="rgba(255,80,80,0.6)" strokeWidth="2" strokeLinecap="round"/>
         <text x="48" y="95" textAnchor="middle" fill="rgba(255,80,80,0.7)" fontSize="9" fontFamily="monospace">Zone morte</text>
+        {/* Zone forte — check bleu */}
         <circle cx="230" cy="55" r="22" fill="rgba(41,121,255,0.08)" stroke="rgba(41,121,255,0.4)" strokeWidth="1.5"/>
         <path d="M221,55 L228,62 L240,48" stroke="#2979FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
         <text x="230" y="88" textAnchor="middle" fill="rgba(41,121,255,0.7)" fontSize="9" fontFamily="monospace">Signal fort</text>
+        {/* Barre de statut inférieure — simulation d'un scan en cours */}
         <line x1="0" y1="140" x2="280" y2="140" stroke="rgba(41,121,255,0.3)" strokeWidth="1" strokeDasharray="6 3"/>
         <text x="14" y="156" fill="rgba(41,121,255,0.5)" fontSize="8" fontFamily="monospace">SCAN EN COURS...</text>
         <circle cx="258" cy="152" r="4" fill="#2979FF" opacity="0.6"/>
@@ -79,11 +122,15 @@ const services = [
       "Garantie 2 ans pièces & main d'œuvre",
     ],
     targets: ["Bureaux", "Commerces", "Airbnb"],
+    // Illustration : plan d'étage avec deux access points (AP1, AP2)
+    // reliés par un lien backbone, et appareils clients répartis dans les pièces
     illustration: (
       <svg viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "auto" }}>
+        {/* Contour du bâtiment + séparations de pièces */}
         <rect x="20" y="20" width="240" height="140" rx="4" stroke="rgba(0,200,83,0.2)" strokeWidth="1.5" fill="rgba(0,200,83,0.03)"/>
         <line x1="130" y1="20" x2="130" y2="160" stroke="rgba(0,200,83,0.15)" strokeWidth="1.5"/>
         <line x1="20" y1="95" x2="130" y2="95" stroke="rgba(0,200,83,0.15)" strokeWidth="1.5"/>
+        {/* Access points avec zones de couverture concentriques */}
         {[
           { x: 75, y: 57, r: [30, 45, 55] },
           { x: 200, y: 90, r: [30, 45, 55] },
@@ -97,7 +144,9 @@ const services = [
             <text x={ap.x} y={ap.y + 22} textAnchor="middle" fill="rgba(0,200,83,0.7)" fontSize="8" fontFamily="monospace">AP {i+1}</text>
           </g>
         ))}
+        {/* Liaison backbone entre les deux AP */}
         <path d="M75,57 Q130,30 200,90" stroke="rgba(0,200,83,0.4)" strokeWidth="1.5" strokeDasharray="5 3" fill="none"/>
+        {/* Appareils clients (laptops, mobiles) répartis dans les pièces */}
         {[{x:40,y:130},{x:105,y:40},{x:160,y:40},{x:245,y:130},{x:245,y:50}].map((d,i) => (
           <rect key={i} x={d.x-7} y={d.y-5} width="14" height="10" rx="2" fill="rgba(0,200,83,0.15)" stroke="rgba(0,200,83,0.4)" strokeWidth="1"/>
         ))}
@@ -124,19 +173,25 @@ const services = [
       "Audit de sécurité mensuel",
     ],
     targets: ["Entreprises", "Syndics", "Hôtels"],
+    // Illustration : bouclier central avec check, menaces périphériques
+    // (croix rouges = bloquées, ! orange = suspecte), barre de statut en bas
     illustration: (
       <svg viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "auto" }}>
+        {/* Bouclier principal */}
         <path d="M140,20 L200,45 L200,100 Q200,145 140,165 Q80,145 80,100 L80,45 Z"
           fill="rgba(255,109,0,0.06)" stroke="rgba(255,109,0,0.3)" strokeWidth="1.5"/>
+        {/* Check de validation au centre du bouclier */}
         <path d="M115,95 L132,112 L165,78" stroke="#FF6D00" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        {/* Cercles de périmètre de surveillance */}
         {[45, 65].map((r, i) => (
           <circle key={i} cx="140" cy="92" r={r} stroke="rgba(255,109,0,0.12)" strokeWidth="1" fill="none" strokeDasharray="4 3"/>
         ))}
+        {/* Menaces périphériques — rouge = bloquée, orange = suspecte */}
         {[
-          { x: 55, y: 50, blocked: true },
-          { x: 230, y: 65, blocked: true },
-          { x: 48, y: 130, blocked: false },
-          { x: 232, y: 130, blocked: true },
+          { x: 55,  y: 50,  blocked: true  },
+          { x: 230, y: 65,  blocked: true  },
+          { x: 48,  y: 130, blocked: false },
+          { x: 232, y: 130, blocked: true  },
         ].map((t, i) => (
           <g key={i}>
             <circle cx={t.x} cy={t.y} r="10"
@@ -144,13 +199,16 @@ const services = [
               stroke={t.blocked ? "rgba(255,80,80,0.5)" : "rgba(255,109,0,0.5)"} strokeWidth="1"/>
             {t.blocked
               ? <>
+                  {/* Croix = menace bloquée par le pare-feu */}
                   <line x1={t.x-4} y1={t.y-4} x2={t.x+4} y2={t.y+4} stroke="rgba(255,80,80,0.8)" strokeWidth="1.5" strokeLinecap="round"/>
                   <line x1={t.x+4} y1={t.y-4} x2={t.x-4} y2={t.y+4} stroke="rgba(255,80,80,0.8)" strokeWidth="1.5" strokeLinecap="round"/>
                 </>
-              : <text x={t.x} y={t.y+4} textAnchor="middle" fill="rgba(255,109,0,0.8)" fontSize="10">!</text>
+              : /* Point d'exclamation = menace suspecte non encore classifiée */
+                <text x={t.x} y={t.y+4} textAnchor="middle" fill="rgba(255,109,0,0.8)" fontSize="10">!</text>
             }
           </g>
         ))}
+        {/* Barre de statut de protection en temps réel */}
         <rect x="20" y="155" width="240" height="18" rx="4" fill="rgba(255,109,0,0.05)" stroke="rgba(255,109,0,0.15)" strokeWidth="1"/>
         <rect x="24" y="159" width="60" height="10" rx="2" fill="rgba(255,109,0,0.3)"/>
         <text x="96" y="168" fill="rgba(255,109,0,0.6)" fontSize="8" fontFamily="monospace">PROTECTION ACTIVE — 3 menaces bloquées</text>
@@ -160,10 +218,43 @@ const services = [
 ];
 
 // ─────────────────────────────────────────────
-// COMPONENT
+// COMPOSANT PRINCIPAL : Services
 // ─────────────────────────────────────────────
+
+/**
+ * Page des services — présente les trois offres en sections alternées
+ * (texte gauche / illustration droite, puis inversé) avec un CTA global en bas.
+ *
+ * Tunnel de conversion :
+ *  - Chaque section a un bouton "Demander un devis" qui navigue vers `/contact`
+ *    en passant le service concerné via `location.state`.
+ *  - Le CTA global navigue vers `/contact` sans pré-sélection.
+ *  - Les numéros de téléphone sont des liens `tel:` natifs (appel direct sur mobile).
+ *
+ * Mise en page :
+ *  - Sections alternées : `index % 2 === 0` → texte à gauche, sinon `row-reverse`.
+ *  - Le coin accent (glow radial) est positionné en miroir selon la direction.
+ *  - Sur mobile, toutes les sections s'empilent verticalement (`flexDirection: column`).
+ */
 export default function Services() {
   const navigate = useNavigate();
+
+  /**
+   * Navigue vers le formulaire de contact en pré-remplissant :
+   *  - `service` : label du select (via `serviceContactLabel`)
+   *  - `plan`    : titre du service (affiché dans le message pré-rédigé)
+   *
+   * Le fallback `?? serviceTitle` protège contre un `serviceId` inconnu
+   * qui ne serait pas dans le mapping.
+   */
+  const handleDevis = (serviceId: string, serviceTitle: string) => {
+    navigate("/contact", {
+      state: {
+        service: serviceContactLabel[serviceId] ?? serviceTitle,
+        plan: serviceTitle,
+      },
+    });
+  };
 
   return (
     <Box sx={{
@@ -173,7 +264,7 @@ export default function Services() {
       overflow: "hidden",
     }}>
 
-      {/* Ambient glow */}
+      {/* Halo lumineux décoratif centré — ne capte pas les événements souris */}
       <Box sx={{
         position: "absolute", width: 800, height: 500,
         background: "radial-gradient(ellipse, rgba(0,80,255,0.07) 0%, transparent 70%)",
@@ -182,7 +273,7 @@ export default function Services() {
 
       <Box sx={{ px: { xs: 3, md: 8 }, py: { xs: 8, md: 12 }, position: "relative", zIndex: 1 }}>
 
-        {/* ── HEADER ────────────────────────── */}
+        {/* ── HEADER ─────────────────────────────────────────────────── */}
         <MotionBox
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -192,43 +283,38 @@ export default function Services() {
           <Box sx={{
             display: "inline-block", px: 3, py: 0.75,
             borderRadius: "20px", background: "#fff",
-            border: "1px solid #e0e0e0",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)", mb: 2.5,
+            border: "1px solid #e0e0e0", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", mb: 2.5,
           }}>
-            <Typography variant="overline" sx={{
-              color: "#1565C0", fontWeight: 700, letterSpacing: 3, fontSize: "0.7rem",
-            }}>
+            <Typography variant="overline" sx={{ color: "#1565C0", fontWeight: 700, letterSpacing: 3, fontSize: "0.7rem" }}>
               NOS SERVICES
             </Typography>
           </Box>
 
           <Box>
             <Box sx={{
-              display: "inline-block",
-              px: { xs: 3, md: 6 }, py: 2,
-              borderRadius: "12px", background: "#fff",
-              boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+              display: "inline-block", px: { xs: 3, md: 6 }, py: 2,
+              borderRadius: "12px", background: "#fff", boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
             }}>
-              <Typography variant="h4" sx={{
-                fontWeight: 900, color: "#000",
-                fontSize: { xs: "1.5rem", md: "2.2rem" },
-              }}>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: "#000", fontSize: { xs: "1.5rem", md: "2.2rem" } }}>
                 Des solutions Wi-Fi adaptées à vos besoins
               </Typography>
             </Box>
           </Box>
 
-          <Typography sx={{
-            color: "rgba(255,255,255,0.6)", fontSize: "1rem",
-            maxWidth: 560, mx: "auto", mt: 2,
-          }}>
+          <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: "1rem", maxWidth: 560, mx: "auto", mt: 2 }}>
             De l'audit initial à la surveillance continue — nous gérons tout pour un réseau rapide, stable et sécurisé.
           </Typography>
         </MotionBox>
 
-        {/* ── SERVICE SECTIONS ────────────────── */}
+        {/* ── SECTIONS SERVICES ──────────────────────────────────────── */}
         <Box sx={{ maxWidth: 1100, mx: "auto", display: "flex", flexDirection: "column", gap: { xs: 8, md: 12 } }}>
           {services.map((service, index) => (
+            /*
+             * Animation whileInView : se déclenche à l'entrée dans le viewport.
+             * `margin: "-80px"` anticipe le trigger de 80px avant le bord bas
+             * de l'écran pour un rendu plus fluide au scroll.
+             * `once: true` évite de rejouer l'animation au scroll retour.
+             */
             <MotionBox
               key={service.id}
               initial={{ opacity: 0, y: 50 }}
@@ -238,6 +324,7 @@ export default function Services() {
             >
               <Box sx={{
                 display: "flex",
+                // Alternance gauche/droite : pair = texte à gauche, impair = texte à droite
                 flexDirection: { xs: "column", md: index % 2 === 0 ? "row" : "row-reverse" },
                 gap: { xs: 4, md: 6 },
                 alignItems: "center",
@@ -249,10 +336,13 @@ export default function Services() {
                 overflow: "hidden",
               }}>
 
-                {/* Corner accent */}
+                {/*
+                 * Accent décoratif dans le coin opposé au texte.
+                 * Positionné en miroir selon la direction de la section
+                 * pour équilibrer visuellement la composition.
+                 */}
                 <Box sx={{
-                  position: "absolute",
-                  top: -40,
+                  position: "absolute", top: -40,
                   right: index % 2 === 0 ? -40 : "auto",
                   left: index % 2 !== 0 ? -40 : "auto",
                   width: 120, height: 120,
@@ -260,10 +350,10 @@ export default function Services() {
                   pointerEvents: "none",
                 }}/>
 
-                {/* ── TEXT ── */}
+                {/* ── BLOC TEXTE ─────────────────────────────────────── */}
                 <Box sx={{ flex: 1, position: "relative", zIndex: 1 }}>
 
-                  {/* Badge + icon */}
+                  {/* Icône + badge "Étape N" */}
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
                     <Box sx={{
                       width: 44, height: 44, borderRadius: "10px",
@@ -282,24 +372,17 @@ export default function Services() {
                     }}/>
                   </Box>
 
-                  <Typography variant="h5" sx={{
-                    fontWeight: 800, color: "#fff", mb: 0.5,
-                    fontSize: { xs: "1.3rem", md: "1.6rem" },
-                  }}>
+                  <Typography variant="h5" sx={{ fontWeight: 800, color: "#fff", mb: 0.5, fontSize: { xs: "1.3rem", md: "1.6rem" } }}>
                     {service.title}
                   </Typography>
-                  <Typography sx={{
-                    color: service.color, fontWeight: 600, fontSize: "0.9rem", mb: 2,
-                  }}>
+                  <Typography sx={{ color: service.color, fontWeight: 600, fontSize: "0.9rem", mb: 2 }}>
                     {service.subtitle}
                   </Typography>
-                  <Typography sx={{
-                    color: "rgba(255,255,255,0.55)", fontSize: "0.95rem", lineHeight: 1.7, mb: 3,
-                  }}>
+                  <Typography sx={{ color: "rgba(255,255,255,0.55)", fontSize: "0.95rem", lineHeight: 1.7, mb: 3 }}>
                     {service.description}
                   </Typography>
 
-                  {/* Benefits */}
+                  {/* Liste des bénéfices avec icône check colorée */}
                   <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mb: 3 }}>
                     {service.benefits.map((b) => (
                       <Box key={b} sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -311,7 +394,7 @@ export default function Services() {
                     ))}
                   </Box>
 
-                  {/* Target chips */}
+                  {/* Chips "cibles" — indiquent à qui s'adresse le service */}
                   <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 3 }}>
                     {service.targets.map((t) => (
                       <Chip key={t} label={t} size="small" sx={{
@@ -323,14 +406,18 @@ export default function Services() {
                     ))}
                   </Box>
 
-                  {/* ✅ CTA — motion.div wrapper */}
+                  {/*
+                   * CTA principal — micro-interactions Framer Motion (scale au hover/tap).
+                   * `style={{ display: "inline-block" }}` nécessaire pour que motion.div
+                   * ne prenne pas toute la largeur (les divs sont block par défaut).
+                   */}
                   <motion.div
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     style={{ display: "inline-block" }}
                   >
                     <Button
-                      onClick={() => navigate("/contact")}
+                      onClick={() => handleDevis(service.id, service.title)}
                       endIcon={<ArrowForwardIcon />}
                       sx={{
                         background: `linear-gradient(135deg, ${service.color}, ${service.color}aa)`,
@@ -349,7 +436,8 @@ export default function Services() {
                   </motion.div>
                 </Box>
 
-                {/* ── ILLUSTRATION ── */}
+                {/* ── ILLUSTRATION SVG ───────────────────────────────── */}
+                {/* Encadrée dans un conteneur avec fond sombre et bordure colorée */}
                 <Box sx={{
                   flex: "0 0 auto",
                   width: { xs: "100%", md: 300 },
@@ -366,7 +454,13 @@ export default function Services() {
           ))}
         </Box>
 
-        {/* ── BOTTOM CTA ──────────────────────── */}
+        {/* ── CTA GLOBAL — bas de page ───────────────────────────────── */}
+        {/*
+         * Bloc de réassurance pour les visiteurs indécis.
+         * Deux appels à l'action distincts :
+         *  - "Nous contacter" → formulaire sans service pré-sélectionné
+         *  - "Appel gratuit"  → lien tel: pour appel direct sur mobile
+         */}
         <MotionBox
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -383,27 +477,23 @@ export default function Services() {
             position: "relative", overflow: "hidden",
           }}
         >
+          {/* Glow interne — renforcé par rapport au glow global de page */}
           <Box sx={{
             position: "absolute", inset: 0,
             background: "radial-gradient(ellipse at center, rgba(41,121,255,0.08) 0%, transparent 70%)",
             pointerEvents: "none",
           }}/>
 
-          <Typography variant="h5" sx={{
-            fontWeight: 900, color: "#fff", mb: 1.5,
-            fontSize: { xs: "1.4rem", md: "1.8rem" },
-          }}>
+          <Typography variant="h5" sx={{ fontWeight: 900, color: "#fff", mb: 1.5, fontSize: { xs: "1.4rem", md: "1.8rem" } }}>
             Pas sûr de ce dont vous avez besoin ?
           </Typography>
-          <Typography sx={{
-            color: "rgba(255,255,255,0.5)", mb: 4, fontSize: "1rem",
-          }}>
+          <Typography sx={{ color: "rgba(255,255,255,0.5)", mb: 4, fontSize: "1rem" }}>
             Notre expert vous rappelle gratuitement et vous conseille la solution adaptée à votre situation.
           </Typography>
 
           <Box sx={{ display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap" }}>
 
-            {/* ✅ Bouton 1 */}
+            {/* Navigation vers /contact sans état pré-rempli */}
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} style={{ display: "inline-block" }}>
               <Button
                 onClick={() => navigate("/contact")}
@@ -421,7 +511,11 @@ export default function Services() {
               </Button>
             </motion.div>
 
-            {/* ✅ Bouton 2 — href tel via component="a" sur Button seul, pas besoin de motion */}
+            {/*
+             * Lien téléphonique natif via component="a" + href="tel:".
+             * Sur mobile, déclenche l'appel directement sans passer par le formulaire.
+             * Sur desktop, ouvre l'application téléphonie par défaut (Skype, FaceTime…).
+             */}
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} style={{ display: "inline-block" }}>
               <Button
                 component="a"
