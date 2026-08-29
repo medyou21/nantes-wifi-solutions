@@ -1,31 +1,55 @@
+// ─────────────────────────────────────────────
+// IMPORTS
+// ─────────────────────────────────────────────
 import { useState, useMemo, useCallback } from "react";
+
 import {
-  Box, Typography, Button, TextField,
-  MenuItem, CircularProgress, Alert, Stack, Chip,
+  Box,
+  Typography,
+  Button,
+  Stack,
+  TextField,
+  MenuItem,
+  Chip,
+  InputAdornment,
 } from "@mui/material";
+
+import SearchIcon from "@mui/icons-material/Search";
+
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+
 import ContactsTable from "./ContactsTable";
 import ContactDetailModal from "./ContactDetailModal";
 import { useContacts } from "../../hooks/useContacts";
+
 import type { Contact } from "../../hooks/useContacts";
 
-const MotionBox = motion.create(Box);
-// ─────────────────────────────────────────────
-// CONSTANTES
-// ─────────────────────────────────────────────
-const SERVICE_OPTIONS = [
-  { value: "diagnostic",   label: "Diagnostic Wi-Fi" },
-  { value: "installation", label: "Installation Wi-Fi" },
-  { value: "securite",     label: "Sécurité" },
-  { value: "reseau",       label: "Réseau pro" },
-  { value: "maintenance",  label: "Maintenance" },
-] as const;
+/** Composant MUI Box enrichi des props d'animation Framer Motion. */
+const MotionBox = motion(Box);
 
-const SERVICE_MAP = Object.fromEntries(
-  SERVICE_OPTIONS.map((s) => [s.value, s.label])
-) as Record<string, string>;
+// ─────────────────────────────────────────────
+// CONSTANTS — SERVICES
+// ─────────────────────────────────────────────
 
+/**
+ * Correspondance clé normalisée → label affichable.
+ * Utilisé pour transformer les valeurs brutes de la base
+ * en libellés lisibles dans le tableau et l'export CSV.
+ */
+const SERVICE_MAP: Record<string, string> = {
+  diagnostic:   "Diagnostic Wi-Fi",
+  installation: "Installation Wi-Fi",
+  securite:     "Sécurité",
+  reseau:       "Réseau professionnel",
+  maintenance:  "Maintenance",
+};
+
+/**
+ * Couleur accent associée à chaque service.
+ * Partagée entre les KPI cards et les Chips du filtre
+ * pour garantir une cohérence visuelle globale.
+ */
 const SERVICE_COLORS: Record<string, string> = {
   diagnostic:   "#2979FF",
   installation: "#00C853",
@@ -34,398 +58,394 @@ const SERVICE_COLORS: Record<string, string> = {
   maintenance:  "#00B8D4",
 };
 
-const getServiceLabel = (value?: string) =>
+/**
+ * Options du select "Type de service".
+ * Séparées de SERVICE_MAP pour contrôler l'ordre d'affichage
+ * et le libellé court affiché dans le filtre (vs. libellé long du tableau).
+ */
+const SERVICE_OPTIONS = [
+  { value: "diagnostic",   label: "Diagnostic"  },
+  { value: "installation", label: "Installation" },
+  { value: "securite",     label: "Sécurité"    },
+  { value: "reseau",       label: "Réseau pro"  },
+  { value: "maintenance",  label: "Maintenance" },
+];
+
+// ─────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────
+
+/**
+ * Normalise la valeur brute du champ `service` (telle que stockée en base)
+ * vers une clé canonique correspondant aux entrées de SERVICE_MAP.
+ *
+ * Nécessaire car les données peuvent provenir de formulaires libres
+ * ou d'anciennes versions de l'API avec des libellés différents.
+ *
+ * Stratégie : correspondance partielle insensible à la casse via `includes()`.
+ * L'ordre des conditions importe — "professionnel" est testé après "reseau"
+ * pour éviter des faux positifs.
+ *
+ * @param value - Valeur brute du service (ex: "Installation Wi-Fi", "install…")
+ * @returns     Clé normalisée (ex: "installation") ou chaîne vide si absent
+ */
+const normalizeService = (value?: string): string => {
+  if (!value) return "";
+
+  const v = value.toLowerCase().trim();
+
+  if (v.includes("diag"))                            return "diagnostic";
+  if (v.includes("install"))                         return "installation";
+  if (v.includes("secur"))                           return "securite";
+  if (v.includes("reseau") || v.includes("professionnel")) return "reseau";
+  if (v.includes("maint"))                           return "maintenance";
+
+  // Aucune correspondance trouvée : retourne la valeur nettoyée telle quelle
+  return v;
+};
+
+/**
+ * Retourne le libellé lisible d'un service à partir de sa clé normalisée.
+ * Repli sur la valeur brute si la clé est inconnue, ou "-" si absente.
+ *
+ * @param value - Clé normalisée (ex: "installation") ou valeur brute
+ * @returns     Libellé affichable (ex: "Installation Wi-Fi") ou "-"
+ */
+const getServiceLabel = (value?: string): string =>
   value ? SERVICE_MAP[value] ?? value : "-";
 
 // ─────────────────────────────────────────────
-// STAT CARD
+// SUB-COMPONENT : StatCard (KPI)
 // ─────────────────────────────────────────────
+
+/**
+ * Carte KPI affichant une métrique chiffrée par service.
+ *
+ * Éléments visuels :
+ *  - Valeur numérique large colorée selon le service.
+ *  - Pourcentage du total en sous-titre.
+ *  - Barre de progression horizontale en bas de carte
+ *    dont la largeur reflète le ratio `value / total`.
+ */
 function StatCard({
-  label, value, color, total,
+  label,
+  value,
+  color,
+  total,
 }: {
   label: string;
   value: number;
   color: string;
   total: number;
 }) {
+  // Calcul du pourcentage — garde contre division par zéro si aucun contact
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
 
   return (
-    <Box sx={{
-      px: 3, py: 2.5, borderRadius: 3, minWidth: 160, flex: "1 1 150px",
-      background: "rgba(255,255,255,0.03)",
-      border: "1px solid rgba(255,255,255,0.08)",
-      position: "relative", overflow: "hidden",
-    }}>
-      <Box sx={{
-        position: "absolute", bottom: 0, left: 0,
-        width: `${pct}%`, height: 3,
-        background: color,
-        borderRadius: "0 2px 0 0",
-        transition: "width 0.6s ease",
-      }} />
-      <Typography
-        variant="caption"
-       
-        sx={{ color: "rgba(255,255,255,0.4)", display:"block", mb: 0.5, textTransform: "uppercase", letterSpacing: 1 }}
-      >
+    <Box
+      sx={{
+        px: 3, py: 2.5,
+        borderRadius: 3,
+        minWidth: 160,
+        flex: "1 1 150px",           // Flex-wrap responsive : s'adapte à la largeur disponible
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        position: "relative",
+        overflow: "hidden",           // Nécessaire pour que la barre ne déborde pas
+      }}
+    >
+      {/* Barre de progression en bas de carte — largeur = pct% */}
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 0, left: 0,
+          width: `${pct}%`,
+          height: 3,
+          background: color,
+        }}
+      />
+
+      <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.4)", textTransform: "uppercase" }}>
         {label}
       </Typography>
-      <Typography sx={{ color, fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
+
+      {/* Valeur principale — grande et colorée pour une lecture immédiate */}
+      <Typography sx={{ color, fontSize: 28, fontWeight: 800 }}>
         {value}
       </Typography>
-      {total > 0 && (
-        <Typography
-  variant="caption"
-  sx={{
-    display: "block",
-    color: "rgba(255,255,255,0.2)",
-    mt: 0.5,
-  }}
->
-          {pct}% du total
-        </Typography>
-      )}
+
+      <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.25)" }}>
+        {pct}% du total
+      </Typography>
     </Box>
   );
 }
 
 // ─────────────────────────────────────────────
-// DASHBOARD
+// MAIN COMPONENT : Dashboard
 // ─────────────────────────────────────────────
+
+/**
+ * Interface d'administration des contacts/leads.
+ *
+ * Fonctionnalités :
+ *  - Récupération des contacts via le hook `useContacts` (fetch + refetch).
+ *  - Normalisation des services pour homogénéiser les données brutes de l'API.
+ *  - KPI cards par service avec barres de progression proportionnelles.
+ *  - Filtres combinés : recherche textuelle (nom/email) + filtre par service.
+ *  - Export CSV de la sélection filtrée courante.
+ *  - Ouverture d'une modale de détail au clic sur une ligne du tableau.
+ *  - Déconnexion avec suppression du token JWT et redirection vers /admin/login.
+ *
+ * Optimisations :
+ *  - `useMemo` sur la normalisation, les stats et les contacts filtrés
+ *    pour éviter des recalculs inutiles à chaque rendu.
+ *  - `useCallback` sur les handlers stables (rowClick, exportCSV)
+ *    pour ne pas recréer les fonctions à chaque rendu.
+ */
 export default function Dashboard() {
-  const { contacts, loading, error, refetch } = useContacts();
-  const [filter, setFilter]                   = useState("");
-  const [service, setService]                 = useState("");
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const { contacts, loading, refetch } = useContacts();
+
+  // ── State local ───────────────────────────────────────────────────
+  const [filter, setFilter]                   = useState("");           // Recherche texte libre
+  const [service, setService]                 = useState("");           // Filtre service actif
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null); // Contact ouvert en modale
+
   const navigate = useNavigate();
 
-  // ── Stats ──────────────────────────────────
-  const stats = useMemo(() => ({
-    total:        contacts.length,
-    installation: contacts.filter((c) => c.service === "installation").length,
-    diagnostic:   contacts.filter((c) => c.service === "diagnostic").length,
-    securite:     contacts.filter((c) => c.service === "securite").length,
-    maintenance:  contacts.filter((c) => c.service === "maintenance").length,
-  }), [contacts]);
+  // ── Normalisation des données ─────────────────────────────────────
+  /**
+   * Transforme les services bruts de l'API en clés canoniques.
+   * Mémoïsé : ne se recalcule que si `contacts` change.
+   */
+  const normalizedContacts = useMemo(
+    () => contacts.map((c) => ({ ...c, service: normalizeService(c.service) })),
+    [contacts]
+  );
 
-  // ── Filtre ─────────────────────────────────
-  const filtered = useMemo(() =>
-    contacts.filter((c) => {
-      const q = filter.toLowerCase();
-      return (
-        (c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)) &&
-        (service ? c.service === service : true)
-      );
+  // ── Calcul des KPIs ───────────────────────────────────────────────
+  /**
+   * Agrège les compteurs par service depuis les contacts normalisés.
+   * Mémoïsé pour éviter 6 `.filter()` à chaque rendu.
+   */
+  const stats = useMemo(
+    () => ({
+      total:        normalizedContacts.length,
+      installation: normalizedContacts.filter((c) => c.service === "installation").length,
+      diagnostic:   normalizedContacts.filter((c) => c.service === "diagnostic").length,
+      securite:     normalizedContacts.filter((c) => c.service === "securite").length,
+      reseau:       normalizedContacts.filter((c) => c.service === "reseau").length,
+      maintenance:  normalizedContacts.filter((c) => c.service === "maintenance").length,
     }),
-  [contacts, filter, service]);
+    [normalizedContacts]
+  );
 
-  // ── Export CSV ─────────────────────────────
+  // ── Filtrage combiné ──────────────────────────────────────────────
+  /**
+   * Applique simultanément la recherche textuelle et le filtre service.
+   * Les deux conditions sont cumulatives (ET logique).
+   * Mémoïsé : se recalcule uniquement si les contacts, le texte ou le service changent.
+   */
+  const filtered = useMemo(
+    () =>
+      normalizedContacts.filter((c) => {
+        const q = filter.toLowerCase();
+        const matchesText = c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q);
+        const matchesService = service ? c.service === service : true;
+        return matchesText && matchesService;
+      }),
+    [normalizedContacts, filter, service]
+  );
+
+  // ── Handlers ──────────────────────────────────────────────────────
+
+  /** Ouvre la modale de détail pour le contact cliqué dans le tableau. */
+  const handleRowClick = useCallback((row: Contact) => {
+    setSelectedContact(row);
+  }, []);
+
+  /**
+   * Génère et télécharge un fichier CSV depuis les contacts filtrés.
+   *
+   * Construit manuellement la chaîne CSV (header + lignes), crée un Blob,
+   * génère une URL objet et déclenche le téléchargement via un <a> temporaire.
+   * Seuls les contacts actuellement visibles (filtrés) sont exportés.
+   */
   const exportCSV = useCallback(() => {
     const header = "Nom,Email,Téléphone,Service,Date";
+
     const rows = filtered.map((c) =>
       [
-        `"${c.name}"`,
+        `"${c.name}"`,                                          // Guillemets pour échapper les virgules dans les noms
         c.email,
         c.phone ?? "",
         getServiceLabel(c.service),
         new Date(c.createdAt).toLocaleDateString("fr-FR"),
       ].join(",")
     );
-    const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv;charset=utf-8;" });
+
+    const blob = new Blob([[header, ...rows].join("\n"), ], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    // Crée un lien temporaire invisible, le clique programmatiquement, puis le libère
     const a = Object.assign(document.createElement("a"), {
       href: URL.createObjectURL(blob),
-      download: `contacts_${new Date().toISOString().slice(0, 10)}.csv`,
+      download: "contacts.csv",
     });
     a.click();
-    URL.revokeObjectURL(a.href);
   }, [filtered]);
 
-  // ── Row click ──────────────────────────────
-  const handleRowClick = useCallback((row: any) => {
-    const original = contacts.find((c) => c._id === row._id);
-    if (original) setSelectedContact({ ...original, service: row.service });
-  }, [contacts]);
-
-  // ── Logout ─────────────────────────────────
-  const logout = useCallback(() => {
+  /** Supprime le JWT du localStorage et redirige vers la page de connexion. */
+  const logout = () => {
     localStorage.removeItem("token");
     navigate("/admin/login");
-  }, [navigate]);
+  };
 
-  // ─────────────────────────────────────────
-  // RENDER
-  // ─────────────────────────────────────────
+  // ── Rendu ─────────────────────────────────────────────────────────
   return (
     <Box sx={{
       minHeight: "100vh",
       background: "linear-gradient(180deg,#000 0%,#0A1628 100%)",
-      px: { xs: 2, md: 6 },
-      py: 5,
+      px: 4, py: 5,
     }}>
 
-      {/* ── Header ──────────────────────────── */}
-      <MotionBox
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        sx={{
-          display: "flex", justifyContent: "space-between",
-          alignItems: "flex-start", mb: 5, flexWrap: "wrap", gap: 2,
-        }}
-      >
-        <Box>
-          <Typography sx={{ color: "#fff", fontWeight: 800, fontSize: { xs: 22, md: 28 }, lineHeight: 1.2 }}>
-            📊 Admin Dashboard
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{ color: "rgba(255,255,255,0.35)", mt: 0.5 }}
-          >
-            {loading
-              ? "Chargement…"
-              : `${stats.total} lead${stats.total > 1 ? "s" : ""} enregistré${stats.total > 1 ? "s" : ""}`
-            }
-          </Typography>
+      {/* ── HEADER ─────────────────────────────────────────────────── */}
+      <MotionBox>
+        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 5 }}>
+          <Box>
+            <Typography sx={{ color: "#fff", fontSize: 28, fontWeight: 800 }}>
+              📊 Admin Dashboard
+            </Typography>
+            {/* Affiche un indicateur de chargement ou le nombre total de contacts */}
+            <Typography sx={{ color: "rgba(255,255,255,0.4)" }}>
+              {loading ? "Chargement..." : `${stats.total} contacts`}
+            </Typography>
+          </Box>
+
+          <Stack direction="row" spacing={2}>
+            <Button onClick={refetch}>Refresh</Button>      {/* Recharge les contacts depuis l'API */}
+            <Button onClick={exportCSV}>Export CSV</Button> {/* Exporte la sélection filtrée */}
+            <Button onClick={logout} color="error">Logout</Button>
+          </Stack>
         </Box>
-
-<Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap" }}>          {[
-            { label: "↻ Actualiser", onClick: refetch,   color: "#2979FF" },
-            { label: "⬇ Export CSV", onClick: exportCSV, color: "#00C853" },
-            { label: "Déconnexion",  onClick: logout,     color: "#ff6b6b" },
-          ].map(({ label, onClick, color }) => (
-            <Button key={label} onClick={onClick} sx={{
-              background: `${color}18`,
-              border: `1px solid ${color}44`,
-              color,
-              textTransform: "none",
-              borderRadius: 2,
-              fontSize: 13,
-              px: 2,
-              "&:hover": { background: `${color}30` },
-            }}>
-              {label}
-            </Button>
-          ))}
-        </Stack>
       </MotionBox>
 
-      {/* ── Stats ───────────────────────────── */}
-      <MotionBox
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <Stack direction="row" spacing={2} sx={{ mb: 4, flexWrap: "wrap", gap: "16px !important" }}>
-          <StatCard label="Total leads"  value={stats.total}        color="#fff"    total={stats.total} />
-          <StatCard label="Installation" value={stats.installation} color="#00C853" total={stats.total} />
-          <StatCard label="Diagnostic"   value={stats.diagnostic}   color="#2979FF" total={stats.total} />
-          <StatCard label="Sécurité"     value={stats.securite}     color="#FF6D00" total={stats.total} />
-          <StatCard label="Maintenance"  value={stats.maintenance}  color="#00B8D4" total={stats.total} />
-        </Stack>
-      </MotionBox>
+      {/* ── KPI CARDS ──────────────────────────────────────────────── */}
+      {/* Une carte par service + une carte "Total" — flex-wrap pour le responsive */}
+      <Stack direction="row" spacing={2} sx={{ mb: 4, flexWrap: "wrap" }}>
+        <StatCard label="Total"        value={stats.total}        color="#fff"                       total={stats.total} />
+        <StatCard label="Installation" value={stats.installation} color={SERVICE_COLORS.installation} total={stats.total} />
+        <StatCard label="Diagnostic"   value={stats.diagnostic}   color={SERVICE_COLORS.diagnostic}   total={stats.total} />
+        <StatCard label="Sécurité"     value={stats.securite}     color={SERVICE_COLORS.securite}     total={stats.total} />
+        <StatCard label="Réseau"       value={stats.reseau}       color={SERVICE_COLORS.reseau}       total={stats.total} />
+        <StatCard label="Maintenance"  value={stats.maintenance}  color={SERVICE_COLORS.maintenance}  total={stats.total} />
+      </Stack>
 
-      {/* ── Filtres ─────────────────────────── */}
+      {/* ── BARRE DE FILTRES ───────────────────────────────────────── */}
       <MotionBox
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.15 }}
-        sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap", alignItems: "center" }}
+        sx={{
+          display: "flex", gap: 2, mb: 3,
+          flexWrap: "wrap", alignItems: "center",
+          p: 2, borderRadius: 3,
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          backdropFilter: "blur(10px)",
+        }}
       >
+        {/* Recherche textuelle — filtre sur nom ET email simultanément */}
         <TextField
-          placeholder="Rechercher par nom ou email…"
+          placeholder="Rechercher nom ou email..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           size="small"
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: "rgba(255,255,255,0.4)" }} />
+              </InputAdornment>
+            ),
+          }}
           sx={{
-            width: 300,
+            width: 340,
             "& .MuiOutlinedInput-root": {
-              background: "rgba(255,255,255,0.04)",
-              borderRadius: 2,
-              color: "#fff",
-              "& fieldset": { borderColor: "rgba(255,255,255,0.1)" },
-              "&:hover fieldset": { borderColor: "rgba(255,255,255,0.2)" },
-              "&.Mui-focused fieldset": { borderColor: "#2979FF" },
+              background: "rgba(255,255,255,0.06)",
+              borderRadius: 2, color: "#EAF0FF",
+              "& fieldset": { borderColor: "rgba(255,255,255,0.12)" },
+              "&:hover fieldset": { borderColor: "rgba(255,255,255,0.25)" },
+              "&.Mui-focused fieldset": {
+                borderColor: "#2979FF",
+                boxShadow: "0 0 0 2px rgba(41,121,255,0.15)",
+              },
             },
-            "& input::placeholder": { color: "rgba(255,255,255,0.25)", fontSize: 13 },
+            "& input": { color: "#EAF0FF" },
+            "& input::placeholder": { color: "rgba(234,240,255,0.35)" },
           }}
         />
 
+        {/* Filtre par service — valeur vide = "Tous les services" (pas de filtre actif) */}
         <TextField
           select
           value={service}
           onChange={(e) => setService(e.target.value)}
           size="small"
-           slotProps={{
-    select: {
-      displayEmpty: true,
-    },
-  }}
           sx={{
-            width: 210,
+            width: 230,
             "& .MuiOutlinedInput-root": {
-              background: "rgba(255,255,255,0.04)",
-              borderRadius: 2,
-              color: "#fff",
-              "& fieldset": { borderColor: "rgba(255,255,255,0.1)" },
-              "&:hover fieldset": { borderColor: "rgba(255,255,255,0.2)" },
-              "&.Mui-focused fieldset": { borderColor: "#2979FF" },
+              background: "rgba(255,255,255,0.06)",
+              borderRadius: 2, color: "#EAF0FF",
+              "& fieldset": { borderColor: "rgba(255,255,255,0.12)" },
+              "&:hover fieldset": { borderColor: "rgba(255,255,255,0.25)" },
+              "&.Mui-focused fieldset": {
+                borderColor: "#00C853",
+                boxShadow: "0 0 0 2px rgba(0,200,83,0.15)",
+              },
             },
-            "& .MuiSelect-icon": { color: "rgba(255,255,255,0.3)" },
+            "& .MuiSelect-icon": { color: "rgba(255,255,255,0.4)" },
           }}
         >
-          <MenuItem value="">
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.4)" }}>
-              Tous les services
-            </Typography>
-          </MenuItem>
+          {/* Option de réinitialisation du filtre service */}
+          <MenuItem value="">Tous les services</MenuItem>
+
+          {/* Chaque option affiche un Chip coloré avec la couleur du service */}
           {SERVICE_OPTIONS.map((s) => (
             <MenuItem key={s.value} value={s.value}>
               <Chip
                 size="small"
                 label={s.label}
                 sx={{
-                  background: `${SERVICE_COLORS[s.value]}22`,
+                  background: `${SERVICE_COLORS[s.value]}22`, // Fond très transparent (alpha 0x22)
                   border: `1px solid ${SERVICE_COLORS[s.value]}44`,
                   color: SERVICE_COLORS[s.value],
-                  fontWeight: 700, fontSize: 11, height: 20,
+                  fontWeight: 700,
                 }}
               />
             </MenuItem>
           ))}
         </TextField>
 
-        {(filter || service) && (
-          <Button
-            onClick={() => { setFilter(""); setService(""); }}
-            size="small"
-            sx={{
-              color: "rgba(255,255,255,0.3)",
-              textTransform: "none", fontSize: 12,
-              "&:hover": { color: "#fff" },
-            }}
-          >
-            ✕ Réinitialiser
-          </Button>
-        )}
-
-        <Typography
-          variant="caption"
-          sx={{ color: "rgba(255,255,255,0.2)", ml: "auto" }}
-        >
-          {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
+        {/* Compteur de résultats — mis à jour en temps réel avec les filtres actifs */}
+        <Typography sx={{ color: "rgba(255,255,255,0.3)", ml: "auto" }}>
+          {filtered.length} résultat(s)
         </Typography>
       </MotionBox>
 
-      {/* ── Erreur ──────────────────────────── */}
-      {error && (
-        <Alert
-          severity="error"
-          sx={{
-            mb: 2,
-            background: "rgba(255,80,80,0.1)",
-            color: "#ff6b6b",
-            border: "1px solid rgba(255,80,80,0.2)",
-          }}
-        >
-          {error}
-        </Alert>
-      )}
+      {/* ── TABLEAU ────────────────────────────────────────────────── */}
+      {/*
+       * Les services sont re-traduits en libellés lisibles via `getServiceLabel`
+       * juste avant de passer au tableau — les données internes restent normalisées.
+       * Séparation claire : logique de normalisation interne / affichage externe.
+       */}
+      <ContactsTable
+        contacts={filtered.map((c) => ({ ...c, service: getServiceLabel(c.service) }))}
+        onRowClick={handleRowClick}
+      />
 
-      {/* ── Table avec effet carte ───────────── */}
-      <MotionBox
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        sx={{
-          borderRadius: 3,
-          p: 2,
-          minHeight: 300,
-          background: "rgba(255,255,255,0.02)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          "& .MuiDataGrid-row": {
-            borderRadius: "10px !important",
-            border: "1px solid rgba(255,255,255,0.06)",
-            background: "rgba(255,255,255,0.02)",
-            marginBottom: "6px",
-            cursor: "pointer",
-            transition: "all 0.2s ease !important",
-            "&:hover": {
-              background: "rgba(41,121,255,0.08) !important",
-              border: "1px solid rgba(41,121,255,0.25) !important",
-              transform: "translateY(-1px)",
-              boxShadow: "0 4px 20px rgba(41,121,255,0.12)",
-            },
-          },
-          "& .MuiDataGrid-row.Mui-selected": {
-            background: "rgba(41,121,255,0.1) !important",
-            border: "1px solid rgba(41,121,255,0.3) !important",
-          },
-          "& .MuiDataGrid-cell": {
-            borderBottom: "none !important",
-            display: "flex",
-            alignItems: "center",
-          },
-          "& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within": {
-            outline: "none !important",
-          },
-          "& .MuiDataGrid-columnHeaders": {
-            borderBottom: "1px solid rgba(255,255,255,0.06) !important",
-            background: "transparent",
-          },
-          "& .MuiDataGrid-columnHeader": {
-            fontSize: 11,
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-          },
-          "& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within": {
-            outline: "none !important",
-          },
-          "& .MuiDataGrid-columnSeparator": { display: "none" },
-          "& .MuiDataGrid-virtualScroller": { mt: "4px !important" },
-          "& .MuiDataGrid-footerContainer": {
-            borderTop: "1px solid rgba(255,255,255,0.06)",
-            mt: 1,
-          },
-          "& .MuiDataGrid-root": { border: "none !important" },
-        }}
-      >
-        {loading ? (
-          <Box sx={{
-            display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center",
-            py: 8, gap: 2,
-          }}>
-            <CircularProgress size={36} sx={{ color: "#2979FF" }} />
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.2)" }}>
-              Chargement des contacts…
-            </Typography>
-          </Box>
-        ) : filtered.length === 0 ? (
-          <Box sx={{ textAlign: "center", py: 8 }}>
-            <Typography sx={{ fontSize: 36, mb: 1 }}>🔍</Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.4)", fontWeight: 600, mb: 0.5 }}>
-              Aucun contact trouvé
-            </Typography>
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.2)" }}>
-              {filter || service
-                ? "Essayez de modifier vos filtres"
-                : "Aucune donnée disponible"
-              }
-            </Typography>
-          </Box>
-        ) : (
-          <ContactsTable
-            contacts={filtered.map((c) => ({
-              ...c,
-              service: getServiceLabel(c.service),
-            }))}
-            onRowClick={handleRowClick}
-          />
-        )}
-      </MotionBox>
-
-      {/* ── Modal détail ────────────────────── */}
+      {/* ── MODALE DE DÉTAIL ───────────────────────────────────────── */}
+      {/* `selectedContact = null` ferme la modale sans détruire le composant */}
       <ContactDetailModal
         contact={selectedContact}
         onClose={() => setSelectedContact(null)}

@@ -14,14 +14,26 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { trackEvent } from "../seo/GoogleAnalytics";
 
+const phone = import.meta.env.VITE_PHONE;
+/**
+ * `motion.create(Box)` crée un composant MUI Box animable par Framer Motion.
+ * Utilisé pour les animations d'entrée (fade, slide) sur les blocs principaux.
+ */
 const MotionBox = motion.create(Box);
 
 // ─────────────────────────────────────────────
 // CONSTANTS
 // ─────────────────────────────────────────────
+
+/**
+ * Liste des types de services proposés.
+ * Alimente le <select> du formulaire et sert de référence pour
+ * valider le pré-remplissage depuis PricingCard (via `services.includes()`).
+ */
 const services = [
   "Diagnostic Wi-Fi",
   "Installation Wi-Fi",
@@ -30,6 +42,11 @@ const services = [
   "Autre",
 ];
 
+/**
+ * Styles MUI partagés pour tous les champs TextField du formulaire.
+ * Applique le thème sombre cohérent (fond semi-transparent, bordures subtiles,
+ * highlight bleu au focus) sans répéter le même objet sx sur chaque champ.
+ */
 const inputSx = {
   "& .MuiOutlinedInput-root": {
     color: "#fff",
@@ -46,7 +63,11 @@ const inputSx = {
   "& .MuiSelect-icon": { color: "rgba(255,255,255,0.4)" },
 };
 
-// ✅ MenuProps extrait — réutilisable et propre
+/**
+ * Styles du menu déroulant (dropdown) du champ "Type de service".
+ * Thème sombre aligné avec le reste de l'interface, avec états
+ * hover et selected distinctifs.
+ */
 const menuProps = {
   PaperProps: {
     sx: {
@@ -61,13 +82,23 @@ const menuProps = {
   },
 };
 
+/**
+ * Coordonnées et informations pratiques affichées dans la colonne gauche.
+ * Chaque item peut être un lien cliquable (`href`) ou un simple affichage (`href: undefined`).
+ * Défini en constante pour découpler les données du rendu JSX.
+ */
 const infoItems = [
-  { icon: <PhoneIcon sx={{ fontSize: 20 }} />, label: "Téléphone",          value: "+33 X XX XX XX XX",       href: "tel:+33XXXXXXXXX" },
-  { icon: <EmailIcon sx={{ fontSize: 20 }} />, label: "Email",              value: "contact@nantes-wifi.fr",  href: "mailto:contact@nantes-wifi.fr" },
+  { icon: <PhoneIcon sx={{ fontSize: 20 }} />, label: "Téléphone",           value: phone,       href: 'tel:${phone}' },
+  { icon: <EmailIcon sx={{ fontSize: 20 }} />, label: "Email",               value: "contact@nantes-wifi.fr",  href: "mailto:contact@nantes-wifi.fr" },
   { icon: <LocationOnIcon sx={{ fontSize: 20 }} />, label: "Zone d'intervention", value: "Nantes & agglomération", href: undefined },
-  { icon: <AccessTimeIcon sx={{ fontSize: 20 }} />, label: "Disponibilité",  value: "Lun–Sam · 8h–19h",       href: undefined },
+  { icon: <AccessTimeIcon sx={{ fontSize: 20 }} />, label: "Disponibilité",   value: "Lun–Sam · 8h–19h",       href: undefined },
 ];
 
+// ─────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────
+
+/** Structure des champs du formulaire de contact. */
 interface FormData {
   name: string;
   email: string;
@@ -76,46 +107,131 @@ interface FormData {
   message: string;
 }
 
+/**
+ * Payload passé via `navigate(state)` depuis PricingCard.
+ * Permet de pré-remplir le formulaire avec le forfait sélectionné
+ * sur la page Tarifs, pour un tunnel de conversion fluide.
+ */
+interface LocationState {
+  service?: string;
+  plan?: string;
+  price?: string;
+}
+
 // ─────────────────────────────────────────────
 // COMPONENT
 // ─────────────────────────────────────────────
+
+/**
+ * Page de contact / demande de devis.
+ *
+ * Fonctionnalités principales :
+ *  - Formulaire de contact avec validation côté client (champs obligatoires).
+ *  - Pré-remplissage automatique depuis PricingCard via `location.state`.
+ *  - Envoi vers l'API REST (`POST /api/contacts`).
+ *  - Tracking Google Analytics des événements `form_submit` et `generate_lead`.
+ *  - Feedback visuel (loading spinner, état succès animé, message d'erreur).
+ *
+ * Layout :
+ *  - Colonne gauche : informations de contact + engagements.
+ *  - Colonne droite : formulaire (ou écran de confirmation après envoi).
+ */
 export default function Contact() {
+  const location = useLocation();
+
+  // ── State ─────────────────────────────────
   const [form, setForm] = useState<FormData>({
     name: "", email: "", phone: "", service: "", message: "",
   });
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError]     = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);  // Envoi en cours → désactive le bouton
+  const [success, setSuccess] = useState(false);  // Affiche l'écran de confirmation
+  const [error, setError]     = useState<string | null>(null); // Message d'erreur utilisateur
 
+  // ── Pré-remplissage depuis PricingCard ────
+  /**
+   * Écoute `location.state` à chaque navigation vers cette page.
+   * Si un forfait a été sélectionné sur la page Tarifs, pré-remplit :
+   *  - `service` : si la valeur figure dans la liste `services` (cohérence du select)
+   *  - `message` : phrase d'accroche mentionnant le nom et le prix du forfait
+   */
+  useEffect(() => {
+    const state = location.state as LocationState | null;
+    if (!state) return;
+
+    setForm((prev) => ({
+      ...prev,
+      // Pré-sélection du service uniquement si la valeur est dans la liste connue
+      ...(state.service && services.includes(state.service)
+        ? { service: state.service }
+        : {}),
+      // Message pré-rempli uniquement si un plan ou un prix est disponible
+      ...(state.plan || state.price
+        ? {
+            message: `Bonjour, je suis intéressé(e) par le forfait "${state.plan ?? ""}"${
+              state.price ? ` (${state.price})` : ""
+            }.\n\nPouvez-vous me recontacter pour en discuter ?`,
+          }
+        : {}),
+    }));
+  }, [location.state]);
+
+  // ── Handlers ──────────────────────────────
+
+  /**
+   * Met à jour le champ correspondant dans le state `form`.
+   * Un seul handler générique grâce à l'attribut `name` sur chaque input.
+   */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  /**
+   * Soumet le formulaire vers l'API.
+   *
+   * Flux :
+   *  1. Validation minimale côté client (nom, email, message requis).
+   *  2. Envoi POST JSON vers `VITE_API_URL/api/contacts`.
+   *  3. Tracking GA4 des événements de conversion.
+   *  4. Réinitialisation du formulaire et affichage de l'écran succès.
+   *  5. Gestion des erreurs réseau ou serveur avec message utilisateur.
+   */
   const handleSubmit = async () => {
+    // Validation client légère avant d'appeler l'API
     if (!form.name || !form.email || !form.message) {
       setError("Veuillez remplir au moins le nom, l'email et le message.");
       return;
     }
+
     setLoading(true);
     setError(null);
+
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/contacts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+
       if (!res.ok) throw new Error("Erreur lors de l'envoi. Réessayez.");
+
       setSuccess(true);
-      trackEvent("form_submit", "Contact", "Formulaire contact", 1);     // ✅ GA4
-trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // ✅ GA4
+
+      // Tracking GA4 : événement générique de soumission de formulaire
+      trackEvent("form_submit", "Contact", "Formulaire contact", 1);
+      // Tracking GA4 : événement de conversion lead, avec le service choisi
+      trackEvent("generate_lead", "Conversion", form.service || "Non renseigné");
+
+      // Réinitialise le formulaire pour un éventuel second envoi
       setForm({ name: "", email: "", phone: "", service: "", message: "" });
     } catch (err: any) {
       setError(err.message);
     } finally {
+      // Toujours réactiver le bouton, succès ou échec
       setLoading(false);
     }
   };
 
+  // ── Render ────────────────────────────────
   return (
     <Box sx={{
       background: "linear-gradient(180deg, #000000 0%, #0A1628 100%)",
@@ -126,7 +242,7 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
       overflow: "hidden",
     }}>
 
-      {/* Glow */}
+      {/* Halo lumineux décoratif centré — effet "glow" bleu en arrière-plan */}
       <Box sx={{
         position: "absolute", width: 600, height: 500,
         background: "radial-gradient(ellipse, rgba(0,80,255,0.08) 0%, transparent 70%)",
@@ -135,13 +251,15 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
 
       <Box sx={{ position: "relative", zIndex: 1, maxWidth: 1100, mx: "auto" }}>
 
-        {/* ── HEADER ────────────────────────── */}
+        {/* ── HEADER ─────────────────────────────────────────────────── */}
+        {/* Animation d'entrée depuis le haut (y: -30 → 0) */}
         <MotionBox
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           sx={{ textAlign: "center", mb: { xs: 6, md: 10 } }}
         >
+          {/* Badge "CONTACT" */}
           <Box sx={{
             display: "inline-block", px: 3, py: 0.75, borderRadius: "20px",
             background: "#fff", border: "1px solid #e0e0e0",
@@ -154,6 +272,7 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
             </Typography>
           </Box>
 
+          {/* Titre principal sur fond blanc pour maximiser la lisibilité sur fond sombre */}
           <Box>
             <Box sx={{
               display: "inline-block", px: { xs: 3, md: 6 }, py: 2,
@@ -177,25 +296,28 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
           </Typography>
         </MotionBox>
 
-        {/* ── LAYOUT 2 colonnes ─────────────── */}
+        {/* ── LAYOUT 2 colonnes ──────────────────────────────────────── */}
         <Box sx={{
           display: "flex",
-          flexDirection: { xs: "column", md: "row" },
+          flexDirection: { xs: "column", md: "row" }, // Empilé sur mobile, côte à côte sur desktop
           gap: 5,
           alignItems: "flex-start",
         }}>
 
-          {/* ── COL GAUCHE : Infos ────────────── */}
+          {/* ── COL GAUCHE : Informations de contact ───────────────── */}
+          {/* Animation d'entrée depuis la gauche (x: -40 → 0) avec délai */}
           <MotionBox
             initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
             sx={{ flex: "0 0 auto", width: { xs: "100%", md: 300 } }}
           >
+            {/* Cartes d'info cliquables (téléphone, email) ou statiques (zone, horaires) */}
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 4 }}>
               {infoItems.map((item) => (
                 <Box
                   key={item.label}
+                  // Rendu conditionnel : <a> si lien disponible, <div> sinon
                   component={item.href ? "a" : "div"}
                   href={item.href}
                   sx={{
@@ -206,12 +328,14 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
                     textDecoration: "none",
                     transition: "all 0.2s",
                     cursor: item.href ? "pointer" : "default",
+                    // Hover uniquement sur les éléments cliquables
                     "&:hover": item.href ? {
                       background: "rgba(41,121,255,0.1)",
                       borderColor: "rgba(41,121,255,0.3)",
                     } : {},
                   }}
                 >
+                  {/* Icône dans un carré bleu arrondi */}
                   <Box sx={{
                     width: 40, height: 40, borderRadius: "10px",
                     background: "rgba(41,121,255,0.15)",
@@ -236,7 +360,7 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
               ))}
             </Box>
 
-            {/* Promesse */}
+            {/* Bloc "Notre engagement" — éléments de réassurance */}
             <Box sx={{
               background: "linear-gradient(135deg, rgba(41,121,255,0.1), rgba(0,200,83,0.06))",
               border: "1px solid rgba(41,121,255,0.2)",
@@ -264,7 +388,8 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
             </Box>
           </MotionBox>
 
-          {/* ── COL DROITE : Formulaire ───────── */}
+          {/* ── COL DROITE : Formulaire ────────────────────────────── */}
+          {/* Animation d'entrée depuis la droite (x: 40 → 0), délai légèrement décalé */}
           <MotionBox
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
@@ -275,12 +400,21 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
               border: "1px solid rgba(255,255,255,0.08)",
               borderRadius: "20px",
               p: { xs: 3, md: 5 },
-              backdropFilter: "blur(10px)",
+              backdropFilter: "blur(10px)", // Effet glassmorphism
               boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
             }}
           >
+            {/*
+             * AnimatePresence gère la transition entre les deux états :
+             *  - `success = false` → affiche le formulaire
+             *  - `success = true`  → affiche l'écran de confirmation
+             * `mode="wait"` attend que l'élément sortant soit complètement
+             * animé avant d'afficher l'entrant.
+             */}
             <AnimatePresence mode="wait">
               {success ? (
+                // ── ÉTAT SUCCÈS ───────────────────────────────────
+                // Affiché après un envoi réussi — animation scale + fade
                 <MotionBox
                   key="success"
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -295,6 +429,7 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
                   <Typography sx={{ color: "rgba(255,255,255,0.5)", mb: 3 }}>
                     Nous vous répondrons dans les 2 heures.
                   </Typography>
+                  {/* Permet à l'utilisateur d'envoyer un second message sans recharger */}
                   <Button
                     onClick={() => setSuccess(false)}
                     sx={{
@@ -308,6 +443,7 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
                   </Button>
                 </MotionBox>
               ) : (
+                // ── FORMULAIRE ────────────────────────────────────
                 <MotionBox
                   key="form"
                   initial={{ opacity: 0 }}
@@ -321,7 +457,7 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
                     VOTRE DEMANDE
                   </Typography>
 
-                  {/* Nom + Email */}
+                  {/* Ligne 1 : Nom + Email (côte à côte sur sm+, empilés sur xs) */}
                   <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
                     <TextField
                       fullWidth name="name" label="Nom complet *"
@@ -335,28 +471,19 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
                     />
                   </Box>
 
-                  {/* Téléphone + Service */}
+                  {/* Ligne 2 : Téléphone + Service */}
                   <Box sx={{ display: "flex", gap: 2, mt: 2, flexDirection: { xs: "column", sm: "row" } }}>
                     <TextField
                       fullWidth name="phone" label="Téléphone"
                       value={form.phone} onChange={handleChange}
                       margin="none" sx={inputSx}
                     />
-                    {/* ✅ SelectProps → slotProps */}
+                    {/* Select natif MUI avec styles sombres via menuProps */}
                     <TextField
-                      fullWidth
-                      select
-                      name="service"
-                      label="Type de service"
-                      value={form.service}
-                      onChange={handleChange}
-                      margin="none"
-                      sx={inputSx}
-                      slotProps={{
-                        select: {
-                          MenuProps: menuProps,
-                        },
-                      }}
+                      fullWidth select name="service" label="Type de service"
+                      value={form.service} onChange={handleChange}
+                      margin="none" sx={inputSx}
+                      slotProps={{ select: { MenuProps: menuProps } }} 
                     >
                       {services.map((s) => (
                         <MenuItem key={s} value={s}>{s}</MenuItem>
@@ -364,7 +491,7 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
                     </TextField>
                   </Box>
 
-                  {/* Message */}
+                  {/* Ligne 3 : Message (textarea 5 lignes) */}
                   <TextField
                     fullWidth name="message" label="Message *"
                     multiline rows={5} value={form.message}
@@ -373,7 +500,7 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
                     sx={{ ...inputSx, mt: 2 }}
                   />
 
-                  {/* Erreur */}
+                  {/* Alerte d'erreur — visible uniquement si `error` est non-null */}
                   {error && (
                     <Alert severity="error" sx={{
                       mt: 2,
@@ -386,7 +513,11 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
                     </Alert>
                   )}
 
-                  {/* ✅ Submit — motion.div wrapper au lieu de MotionButton */}
+                  {/*
+                   * Bouton de soumission avec micro-interactions Framer Motion.
+                   * `whileHover` et `whileTap` sont désactivés pendant le chargement
+                   * pour ne pas donner un feedback trompeur à l'utilisateur.
+                   */}
                   <motion.div
                     whileHover={!loading ? { scale: 1.02 } : {}}
                     whileTap={!loading ? { scale: 0.98 } : {}}
@@ -396,12 +527,14 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
                       disabled={loading}
                       fullWidth
                       endIcon={
+                        // Remplace l'icône Send par un spinner pendant l'envoi
                         loading
                           ? <CircularProgress size={18} sx={{ color: "#fff" }} />
                           : <SendIcon />
                       }
                       sx={{
                         mt: 3, py: 1.6,
+                        // Fond atténué pendant le chargement pour renforcer le feedback visuel
                         background: loading
                           ? "rgba(41,121,255,0.4)"
                           : "linear-gradient(135deg, #2979FF, #1565C0)",
@@ -416,6 +549,7 @@ trackEvent("generate_lead", "Conversion", form.service || "Non renseigné"); // 
                     </Button>
                   </motion.div>
 
+                  {/* Mention légère sur la confidentialité et les champs obligatoires */}
                   <Typography sx={{
                     color: "rgba(255,255,255,0.25)", fontSize: "0.75rem",
                     textAlign: "center", mt: 2,
