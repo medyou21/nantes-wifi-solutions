@@ -19,6 +19,7 @@ import { useLocation } from "react-router-dom";
 import { trackEvent } from "../seo/GoogleAnalytics";
 
 const phone = import.meta.env.VITE_PHONE;
+const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
 /**
  * `motion.create(Box)` crée un composant MUI Box animable par Framer Motion.
  * Utilisé pour les animations d'entrée (fade, slide) sur les blocs principaux.
@@ -206,7 +207,7 @@ export default function Contact() {
     setError(null);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/contacts`, {
+      const res = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/api/contacts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
