@@ -1,6 +1,6 @@
 import {
   AppBar, Toolbar, Typography, Button, Box,
-  IconButton, Drawer, List, ListItem,
+  IconButton, Drawer, ListItem,
   ListItemButton, ListItemText, Chip,
 } from "@mui/material";
 

@@ -19,6 +19,7 @@ import { useLocation } from "react-router-dom";
 import { trackEvent } from "../seo/GoogleAnalytics";
 
 const phone = import.meta.env.VITE_PHONE;
+const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
 /**
  * `motion.create(Box)` crée un composant MUI Box animable par Framer Motion.
  * Utilisé pour les animations d'entrée (fade, slide) sur les blocs principaux.
@@ -88,7 +89,7 @@ const menuProps = {
  * Défini en constante pour découpler les données du rendu JSX.
  */
 const infoItems = [
-  { icon: <PhoneIcon sx={{ fontSize: 20 }} />, label: "Téléphone",           value: phone,       href: 'tel:${phone}' },
+  { icon: <PhoneIcon sx={{ fontSize: 20 }} />, label: "Téléphone",           value: phone,       href: phone ? `tel:${phone}` : undefined },
   { icon: <EmailIcon sx={{ fontSize: 20 }} />, label: "Email",               value: "contact@nantes-wifi.fr",  href: "mailto:contact@nantes-wifi.fr" },
   { icon: <LocationOnIcon sx={{ fontSize: 20 }} />, label: "Zone d'intervention", value: "Nantes & agglomération", href: undefined },
   { icon: <AccessTimeIcon sx={{ fontSize: 20 }} />, label: "Disponibilité",   value: "Lun–Sam · 8h–19h",       href: undefined },
@@ -206,7 +207,7 @@ export default function Contact() {
     setError(null);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/contacts`, {
+      const res = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/api/contacts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

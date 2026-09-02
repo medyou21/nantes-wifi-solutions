@@ -3,8 +3,6 @@ import {
   Typography,
   CircularProgress,
 } from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import PricingCard from "../components/PricingCard";
@@ -15,33 +13,15 @@ const MotionBox = motion.create(Box);
 // TYPES
 // ─────────────────────────────────────────────
 interface Offer {
-  _id: string;
+  id?: number;
+  _id?: string;
   title: string;
   price: number;
   description: string;
   features: string[];
 }
 
-// ─────────────────────────────────────────────
-// COMPARAISON
-// ─────────────────────────────────────────────
-const compareRows = [
-  { label: "Diagnostic Wi-Fi", basic: true, confort: true, pro: true },
-  { label: "Optimisation réseau", basic: true, confort: true, pro: true },
-  { label: "Vérification sécurité", basic: true, confort: true, pro: true },
-  { label: "Installation avancée", basic: false, confort: true, pro: true },
-  { label: "Matériel inclus", basic: false, confort: true, pro: true },
-  { label: "Support email", basic: true, confort: true, pro: true },
-  { label: "Support 24/7", basic: false, confort: false, pro: true },
-  { label: "Réseau professionnel", basic: false, confort: false, pro: true },
-  { label: "Surveillance en continu", basic: false, confort: false, pro: true },
-  { label: "Dashboard admin", basic: false, confort: false, pro: true },
-  { label: "SLA garanti", basic: false, confort: false, pro: true },
-  { label: "Audit réseau mensuel", basic: false, confort: false, pro: true },
-];
-
-// couleurs colonnes
-const colColors = ["#64B5F6", "#2979FF", "#FF6D00"];
+const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Pricing() {
   const [plans, setPlans] = useState<Offer[]>([]);
@@ -49,7 +29,7 @@ export default function Pricing() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/offers`)
+    fetch(`${apiBaseUrl.replace(/\/$/, "")}/api/offers`)
       .then((res) => {
         if (!res.ok) throw new Error("Erreur lors du chargement des offres");
         return res.json();
@@ -162,7 +142,7 @@ export default function Pricing() {
               ];
 
               return (
-                <Box key={plan._id} sx={{ flex: "1 1 260px", maxWidth: 300 }}>
+                <Box key={plan.id ?? plan._id} sx={{ flex: "1 1 260px", maxWidth: 300 }}>
                   <PricingCard
                     title={plan.title}
                     price={`${plan.price}`}
