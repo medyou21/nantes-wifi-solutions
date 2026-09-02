@@ -88,7 +88,7 @@ const menuProps = {
  * Défini en constante pour découpler les données du rendu JSX.
  */
 const infoItems = [
-  { icon: <PhoneIcon sx={{ fontSize: 20 }} />, label: "Téléphone",           value: phone,       href: 'tel:${phone}' },
+  { icon: <PhoneIcon sx={{ fontSize: 20 }} />, label: "Téléphone",           value: phone,       href: phone ? `tel:${phone}` : undefined },
   { icon: <EmailIcon sx={{ fontSize: 20 }} />, label: "Email",               value: "contact@nantes-wifi.fr",  href: "mailto:contact@nantes-wifi.fr" },
   { icon: <LocationOnIcon sx={{ fontSize: 20 }} />, label: "Zone d'intervention", value: "Nantes & agglomération", href: undefined },
   { icon: <AccessTimeIcon sx={{ fontSize: 20 }} />, label: "Disponibilité",   value: "Lun–Sam · 8h–19h",       href: undefined },
