@@ -1,6 +1,7 @@
 import { DataGrid } from "@mui/x-data-grid";
 import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
-import { Chip } from "@mui/material";
+import { Button, Chip, MenuItem, Select, Stack } from "@mui/material";
+import type { Contact } from "../../hooks/useContacts";
 
 // ─────────────────────────────────────────────
 // CONSTANTS
@@ -27,14 +28,16 @@ const formatDate = (value: any) => {
 // PROPS
 // ─────────────────────────────────────────────
 type Props = {
-  contacts: any[];
-  onRowClick: (contact: any) => void;
+  contacts: Contact[];
+  onRowClick: (contact: Contact) => void;
+  onStatusChange: (id: string, status: "new" | "contacted" | "closed") => void;
+  onDelete: (id: string) => void;
 };
 
 // ─────────────────────────────────────────────
 // COMPONENT
 // ─────────────────────────────────────────────
-export default function ContactsTable({ contacts, onRowClick }: Props) {
+export default function ContactsTable({ contacts, onRowClick, onStatusChange, onDelete }: Props) {
   const columns: GridColDef[] = [
     {
       field: "name",
@@ -81,6 +84,51 @@ export default function ContactsTable({ contacts, onRowClick }: Props) {
       headerName: "Date",
       flex: 1,
       valueFormatter: (value: any) => formatDate(value),
+    },
+    {
+      field: "status",
+      headerName: "Statut",
+      flex: 1,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<Contact>) => (
+        <Select
+          size="small"
+          value={params.row.status ?? "new"}
+          onClick={(event) => event.stopPropagation()}
+          onChange={(event) => onStatusChange(
+            params.row._id,
+            event.target.value as "new" | "contacted" | "closed",
+          )}
+          sx={{ minWidth: 120, height: 32 }}
+        >
+          <MenuItem value="new">Nouveau</MenuItem>
+          <MenuItem value="contacted">Contacté</MenuItem>
+          <MenuItem value="closed">Clôturé</MenuItem>
+        </Select>
+      ),
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 115,
+      sortable: false,
+      filterable: false,
+      renderCell: (params: GridRenderCellParams<Contact>) => (
+        <Stack direction="row">
+          <Button
+            color="error"
+            size="small"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (window.confirm("Supprimer définitivement ce contact ?")) {
+                onDelete(params.row._id);
+              }
+            }}
+          >
+            Supprimer
+          </Button>
+        </Stack>
+      ),
     },
   ];
 

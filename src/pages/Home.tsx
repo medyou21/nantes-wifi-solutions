@@ -10,6 +10,8 @@ import Services from "../sections/Services";
 
 // Section des offres / tarifs (pricing)
 import Pricing from "../sections/Pricing";
+import Testimonials from "../sections/Testimonials";
+import CTA from "../components/CTA";
 
 
 // ─────────────────────────────────────────────
@@ -29,6 +31,8 @@ export default function Home() {
       {/* ───────── PRICING ───────── */}
       {/* Affichage des offres et tarifs */}
       <Pricing />
+      <Testimonials />
+      <CTA />
     </>
   );
 }

@@ -364,8 +364,9 @@ Visiteur
 - [x] SEO local et données structurées
 - [x] GA4, GTM, Google Ads et Consent Mode v2
 - [x] Sitemap et règles robots
-- [ ] Bouton WhatsApp flottant
-- [ ] Avis clients et preuve sociale
+- [x] Bouton WhatsApp flottant configurable
+- [x] Avis clients et preuve sociale (exemples à remplacer par des avis vérifiés)
+- [x] CRUD PostgreSQL des offres dans le dashboard
 - [ ] Réservation de créneau
 - [ ] Paiement Stripe
 - [ ] Intégration CRM

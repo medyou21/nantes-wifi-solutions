@@ -12,6 +12,7 @@ export type Contact = {
   phone?: string;
   service?: string;
   message: string;
+  status?: "new" | "contacted" | "closed";
   createdAt: string;
 };
 
@@ -83,6 +84,23 @@ export function useContacts() {
 
   }, [fetchContacts]);
 
+  /** Met à jour le statut d'un contact via une route protégée par JWT. */
+  const updateStatus = useCallback(async (
+    id: string,
+    status: "new" | "contacted" | "closed",
+  ) => {
+    const response = await API.patch(`/admin/contacts/${id}/status`, { status });
+    setContacts((current) =>
+      current.map((contact) => contact._id === id ? response.data : contact),
+    );
+  }, []);
+
+  /** Supprime un contact, puis synchronise immédiatement l'interface. */
+  const deleteContact = useCallback(async (id: string) => {
+    await API.delete(`/admin/contacts/${id}`);
+    setContacts((current) => current.filter((contact) => contact._id !== id));
+  }, []);
+
   // ─────────────────────────────────────────────
   // RETURN HOOK (API propre réutilisable)
   // ─────────────────────────────────────────────
@@ -91,5 +109,7 @@ export function useContacts() {
     loading,    // état chargement
     error,      // message erreur
     refetch: fetchContacts, // reload manuel
+    updateStatus,
+    deleteContact,
   };
 }

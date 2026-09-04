@@ -226,7 +226,8 @@ export default function Footer() {
             {/* Bouton appel (CTA téléphone) */}
             <Button
               component="a"
-              href={`tel:${phone.replace(/\s+/g, "")}`}
+              href={phone ? `tel:${phone.replace(/\s+/g, "")}` : undefined}
+              disabled={!phone}
               startIcon={<PhoneIcon sx={{ fontSize: 16 }} />}
               sx={{
                 px: 3,
@@ -245,7 +246,7 @@ export default function Footer() {
                 },
               }}
             >
-              {phone}
+              {phone || "Téléphone indisponible"}
             </Button>
           </Box>
 

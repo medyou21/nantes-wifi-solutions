@@ -21,11 +21,12 @@ const MotionBox = motion.create(Box);
  * Correspond au modèle Mongoose `Offer` côté backend.
  */
 interface Offer {
-  _id: string;
+  id: number;
   title: string;
   price: number;
   description: string;
   features: string[];
+  service: { slug: string; name: string };
 }
 
 // ─────────────────────────────────────────────
@@ -218,19 +219,14 @@ export default function Pricing() {
               ];
 
               return (
-                <Box key={plan._id} sx={{ flex: "1 1 260px", maxWidth: 300 }}>
+                <Box key={plan.id} sx={{ flex: "1 1 260px", maxWidth: 300 }}>
                   <PricingCard
                     title={plan.title}
                     price={`${plan.price}`}
                     features={plan.features}
                     // Correspondance titre → clé de service pour le pré-remplissage
                     // du formulaire de contact via navigate(state)
-                    service={
-                      plan.title === "Basic"          ? "Diagnostic Wi-Fi"     :
-                      plan.title === "Confort"        ? "Installation Wi-Fi"   :
-                      plan.title === "Pro Entreprise" ? "Réseau professionnel" :
-                      "Autre"
-                    }
+                    service={plan.service?.name || "Autre"}
                     highlight={styles[index]?.highlight}
                     dark={styles[index]?.dark}
                   />

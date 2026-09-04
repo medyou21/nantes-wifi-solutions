@@ -89,7 +89,7 @@ const phone = import.meta.env.VITE_PHONE;
         }}>
 
           {/* Numéro de téléphone avec triangle décoratif (▶) en guise de puce */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box component={phone ? "a" : "div"} href={phone ? `tel:${phone.replace(/\s+/g, "")}` : undefined} sx={{ display: "flex", alignItems: "center", gap: 1, textDecoration: "none" }}>
             {/* Triangle CSS pur — borders asymétriques simulant un ▶ blanc */}
             <Box sx={{
               width: 0, height: 0,
@@ -98,7 +98,7 @@ const phone = import.meta.env.VITE_PHONE;
               borderLeft: "10px solid #fff",
             }}/>
             <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "1.05rem", letterSpacing: 1 }}>
-              {phone}
+              {phone || "Téléphone indisponible"}
             </Typography>
           </Box>
 
@@ -123,7 +123,7 @@ const phone = import.meta.env.VITE_PHONE;
               },
             }}
           >
-            Obtenir un devis gratuit
+            Devis gratuit en 2 min
           </Button>
 
           {/* Badges partenaires / opérateurs — éléments de réassurance discrets */}

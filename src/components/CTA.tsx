@@ -8,10 +8,11 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import { motion } from "framer-motion";
 
 // On crée un composant animé basé sur Box (Material UI)
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 // Composant principal CTA (Call To Action)
 const CTA = () => {
+  const phone = import.meta.env.VITE_PHONE;
   return (
     // Container principal de la section CTA
     <Box
@@ -128,6 +129,9 @@ const CTA = () => {
 
         {/* Bouton d'appel avec numéro de téléphone */}
         <Button
+          component="a"
+          href={phone ? `tel:${phone.replace(/\s+/g, "")}` : undefined}
+          disabled={!phone}
           variant="contained"
           startIcon={<PhoneIcon />}
           sx={{
@@ -159,7 +163,7 @@ const CTA = () => {
             transition: "all 0.3s ease",
           }}
         >
-          06 12 34 55 78
+          {phone || "Téléphone indisponible"}
         </Button>
       </MotionBox>
     </Box>
