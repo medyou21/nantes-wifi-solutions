@@ -8,6 +8,7 @@ import { PAGES_SEO } from "./seo/seo.config";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import CookieConsent from "./components/CookieConsent";
+import WhatsAppButton from "./components/WhatsAppButton";
 
 import Home from "./pages/Home";
 import Services from "./pages/services";
@@ -103,6 +104,7 @@ export default function App() {
 
       <Footer />
       <CookieConsent />
+      <WhatsAppButton />
     </>
   );
 }

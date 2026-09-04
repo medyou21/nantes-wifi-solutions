@@ -21,12 +21,13 @@ import { useNavigate } from "react-router-dom";
 
 import ContactsTable from "./ContactsTable";
 import ContactDetailModal from "./ContactDetailModal";
+import OffersManager from "./OffersManager";
 import { useContacts } from "../../hooks/useContacts";
 
 import type { Contact } from "../../hooks/useContacts";
 
 /** Composant MUI Box enrichi des props d'animation Framer Motion. */
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 // ─────────────────────────────────────────────
 // CONSTANTS — SERVICES
@@ -204,7 +205,7 @@ function StatCard({
  *    pour ne pas recréer les fonctions à chaque rendu.
  */
 export default function Dashboard() {
-  const { contacts, loading, refetch } = useContacts();
+  const { contacts, loading, refetch, updateStatus, deleteContact } = useContacts();
 
   // ── State local ───────────────────────────────────────────────────
   const [filter, setFilter]                   = useState("");           // Recherche texte libre
@@ -442,6 +443,8 @@ export default function Dashboard() {
       <ContactsTable
         contacts={filtered.map((c) => ({ ...c, service: getServiceLabel(c.service) }))}
         onRowClick={handleRowClick}
+        onStatusChange={updateStatus}
+        onDelete={deleteContact}
       />
 
       {/* ── MODALE DE DÉTAIL ───────────────────────────────────────── */}
@@ -450,6 +453,8 @@ export default function Dashboard() {
         contact={selectedContact}
         onClose={() => setSelectedContact(null)}
       />
+
+      <OffersManager />
     </Box>
   );
 }
