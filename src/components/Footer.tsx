@@ -226,7 +226,7 @@ export default function Footer() {
             {/* Bouton appel (CTA téléphone) */}
             <Button
               component="a"
-              href="tel:+33612345578"
+              href={`tel:${phone.replace(/\s+/g, "")}`}
               startIcon={<PhoneIcon sx={{ fontSize: 16 }} />}
               sx={{
                 px: 3,
